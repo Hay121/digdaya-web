@@ -1,0 +1,220 @@
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+const gHash=()=>Array.from({length:16},()=>Math.floor(Math.random()*16).toString(16)).join("");
+const TX_TYPES=["Cashflow","Logistics","AgriSale","Repayment"];
+const makeTx=()=>({id:Math.random().toString(36).slice(2),entityId:"0x"+gHash().slice(0,8),type:TX_TYPES[Math.floor(Math.random()*TX_TYPES.length)],hash:gHash()+gHash(),status:Math.random()>.92?"fraud":Math.random()>.14?"verified":"pending",time:new Date().toLocaleTimeString("id-ID")});
+const foodData=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return {date:d.toLocaleDateString("id-ID",{day:"2-digit",month:"short"}),beras:13800+Math.floor(Math.random()*1400-200),cabai:34000+Math.floor(Math.random()*7000-2000)};});
+const sectorData=[{s:"Perdagangan",v:2840},{s:"Pertanian",v:1650},{s:"Jasa",v:2100},{s:"Manufaktur",v:980},{s:"Perikanan",v:760}];
+export default function Dashboard() {
+  const router=useRouter();
+  const [user,setUser]=useState<any>(null);
+  const [umkm,setUmkm]=useState<any>(null);
+  const [score,setScore]=useState(0);
+  const [txs,setTxs]=useState<any[]>([]);
+  const [liveCount,setLiveCount]=useState(1247);
+  const [mounted,setMounted]=useState(false);
+  useEffect(()=>{
+    setMounted(true);
+    const u=localStorage.getItem("digdaya_user");
+    const d=localStorage.getItem("digdaya_umkm_data");
+    const s=localStorage.getItem("digdaya_score");
+    if(!u){router.push("/");return;}
+    setUser(JSON.parse(u));
+    if(d)setUmkm(JSON.parse(d));
+    if(s)setScore(parseInt(s));
+    setTxs(Array.from({length:8},makeTx));
+  },[]);
+  useEffect(()=>{
+    if(!mounted)return;
+    const iv=setInterval(()=>{setTxs(p=>[makeTx(),...p.slice(0,9)]);setLiveCount(c=>c+1);},4000);
+    return ()=>clearInterval(iv);
+  },[mounted]);
+  if(!user||!mounted) return null;
+  const sc=score>=740?"#02C39A":score>=670?"#028090":score>=580?"#F4A261":"#EF4444";
+  const sl=score>=740?"Excellent":score>=670?"Good":score>=580?"Fair":"Poor";
+  const loan=parseInt(umkm?.loanAmount||0);
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:#060E1C;color:#F1F5F9;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#0A1628}::-webkit-scrollbar-thumb{background:#1E3A5F;border-radius:3px}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
+        @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+        .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:18px}
+        .stitle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#64748B;margin-bottom:14px;letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+        .dot{width:7px;height:7px;border-radius:50%;background:#02C39A;animation:pulse 2s infinite;display:inline-block}
+        .tx-row{animation:slideIn .25s ease}
+        .nbtn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:8px;color:#64748B;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+        .nbtn:hover{background:rgba(255,255,255,.08);color:#94A3B8}
+        .nbtn.p{background:linear-gradient(135deg,#028090,#02C39A);border-color:transparent;color:#fff;font-weight:600}
+        .stat-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px;position:relative;overflow:hidden}
+      `}</style>
+      <div style={{minHeight:"100vh",background:"#060E1C",position:"relative"}}>
+        <div style={{position:"fixed",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(rgba(2,128,144,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(2,128,144,.025) 1px,transparent 1px)",backgroundSize:"48px 48px"}}/>
+        <nav style={{position:"sticky",top:0,zIndex:100,background:"rgba(6,14,28,.94)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,.05)",padding:"0 24px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:9}}>
+            <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15}}>D</div>
+            <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15,letterSpacing:-.3}}>DIGDAYA</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:12,color:"#475569"}}>Halo, <strong style={{color:"#94A3B8"}}>{user.name}</strong></span>
+            <div style={{width:1,height:16,background:"rgba(255,255,255,.08)"}}/>
+            <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.15)",borderRadius:20,padding:"4px 11px",fontSize:10}}>
+              <span className="dot"/><span style={{color:"#02C39A",fontWeight:600,letterSpacing:.5}}>Live</span>
+            </div>
+            {score>0&&<button className="nbtn p" onClick={()=>router.push("/report")}>Laporan & Pencairan</button>}
+            {!score&&<button className="nbtn p" onClick={()=>router.push("/onboarding")}>Ajukan Kredit</button>}
+            <button className="nbtn" onClick={()=>{localStorage.clear();router.push("/")}}>Keluar</button>
+          </div>
+        </nav>
+
+        <main style={{position:"relative",zIndex:1,padding:"22px 24px",maxWidth:1260,margin:"0 auto"}}>
+          <div style={{marginBottom:20}}>
+            <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:21,fontWeight:800,marginBottom:3,letterSpacing:-.4}}>{umkm?.bizName||"Dashboard UMKM"}</h1>
+            <p style={{color:"#334155",fontSize:12}}>{umkm?.bizType||"Belum ada data usaha"}{umkm?.city?` · ${umkm.city}`:""}{umkm?.province?`, ${umkm.province}`:""}</p>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
+            {[
+              {l:"Credit Score",v:score>0?score.toString():"—",s:score>0?sl:"Belum dianalisis",c:score>0?sc:"#1E293B",i:"◎"},
+              {l:"Pengajuan Kredit",v:loan>0?`Rp ${(loan/1e6).toFixed(0)}jt`:"—",s:umkm?.loanPurpose||"Belum diisi",c:"#028090",i:"◈"},
+              {l:"Total TX Tercatat",v:liveCount.toLocaleString("id-ID"),s:"Verified on-chain",c:"#02C39A",i:"◐"},
+              {l:"Status Eligibilitas",v:score>0?(score>=580?"Eligible":"Review"):"Pending",s:score>0?(score>=580?"Layak mengajukan kredit":"Perlu peningkatan skor"):"Data belum lengkap",c:score>=580&&score>0?"#02C39A":"#F4A261",i:"◉"},
+            ].map((s,i)=>(
+              <div key={i} className="stat-card">
+                <div style={{position:"absolute",top:0,left:0,right:0,height:1.5,background:`linear-gradient(90deg,transparent,${s.c}80,transparent)`}}/>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontSize:9,color:"#334155",letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontFamily:"'JetBrains Mono',monospace"}}>{s.l}</div>
+                    <div style={{fontSize:24,fontWeight:800,color:s.c,fontFamily:"'Syne',sans-serif",lineHeight:1,letterSpacing:-.5}}>{s.v}</div>
+                    <div style={{fontSize:11,color:"#334155",marginTop:5}}>{s.s}</div>
+                  </div>
+                  <div style={{fontSize:20,color:s.c,opacity:.5,fontFamily:"monospace"}}>{s.i}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr",gap:14,marginBottom:14}}>
+            <div className="card">
+              <div className="stitle">Tren Harga Komoditas Pangan — 14 Hari</div>
+              <div style={{fontSize:10,color:"#1E293B",marginBottom:12}}>Sumber: simulasi data pasar induk · digunakan sebagai faktor risiko sektoral dalam model AI</div>
+              <ResponsiveContainer width="100%" height={170}>
+                <AreaChart data={foodData}>
+                  <defs>
+                    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#F4A261" stopOpacity={.25}/><stop offset="95%" stopColor="#F4A261" stopOpacity={0}/></linearGradient>
+                    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={.18}/><stop offset="95%" stopColor="#EF4444" stopOpacity={0}/></linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)"/>
+                  <XAxis dataKey="date" tick={{fill:"#334155",fontSize:9,fontFamily:"Inter"}} interval={3}/>
+                  <YAxis tick={{fill:"#334155",fontSize:9,fontFamily:"Inter"}} tickFormatter={(v:number)=>`${(v/1000).toFixed(0)}k`}/>
+                  <Tooltip contentStyle={{background:"#0D1B2E",border:"1px solid rgba(255,255,255,.08)",borderRadius:9,fontSize:11,fontFamily:"Inter"}} formatter={(v:any)=>`Rp ${parseInt(v).toLocaleString("id-ID")}`}/>
+                  <Area type="monotone" dataKey="beras" name="Beras" stroke="#F4A261" fill="url(#g1)" strokeWidth={1.5}/>
+                  <Area type="monotone" dataKey="cabai" name="Cabai" stroke="#EF4444" fill="url(#g2)" strokeWidth={1.5}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="card">
+              <div className="stitle">Status Kredit Saya</div>
+              {score>0?(
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
+                  <div style={{width:100,height:100,borderRadius:"50%",background:`conic-gradient(${sc} ${((score-300)/550)*360}deg,rgba(255,255,255,.04) 0deg)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 0 28px ${sc}25`}}>
+                    <div style={{width:76,height:76,borderRadius:"50%",background:"#0A1628",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                      <div style={{fontSize:24,fontWeight:800,color:sc,fontFamily:"'Syne',sans-serif",lineHeight:1,letterSpacing:-1}}>{score}</div>
+                      <div style={{fontSize:8,color:sc,fontWeight:600,letterSpacing:2,textTransform:"uppercase"}}>{sl}</div>
+                    </div>
+                  </div>
+                  <div style={{width:"100%"}}>
+                    {[["Nominal","Rp "+loan.toLocaleString("id-ID")],["Tujuan",umkm?.loanPurpose||"—"],["Wilayah",umkm?.province||"—"]].map(([k,v],i)=>(
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.04)"}}>
+                        <span style={{fontSize:11,color:"#334155"}}>{k}</span>
+                        <span style={{fontSize:11,fontWeight:500,color:"#94A3B8"}}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button style={{background:"linear-gradient(135deg,#028090,#02C39A)",border:"none",borderRadius:9,color:"#fff",padding:"10px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",width:"100%",letterSpacing:.2}} onClick={()=>router.push("/report")}>Lihat Laporan & Cairkan Dana</button>
+                </div>
+              ):(
+                <div style={{textAlign:"center",padding:"20px 8px"}}>
+                  <div style={{fontSize:32,marginBottom:10,color:"#1E293B",fontFamily:"monospace"}}>◎</div>
+                  <div style={{fontWeight:600,marginBottom:5,fontSize:14,letterSpacing:-.2}}>Belum Ada Data</div>
+                  <div style={{fontSize:12,color:"#334155",marginBottom:16,lineHeight:1.6}}>Lengkapi profil usaha untuk mendapat credit score dari AI</div>
+                  <button style={{background:"linear-gradient(135deg,#028090,#02C39A)",border:"none",borderRadius:9,color:"#fff",padding:"10px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:.2}} onClick={()=>router.push("/onboarding")}>Mulai Pengajuan</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+            <div className="card">
+              <div className="stitle">Distribusi UMKM per Sektor</div>
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={sectorData} barSize={14}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)"/>
+                  <XAxis dataKey="s" tick={{fill:"#334155",fontSize:9,fontFamily:"Inter"}}/>
+                  <YAxis tick={{fill:"#334155",fontSize:9,fontFamily:"Inter"}}/>
+                  <Tooltip contentStyle={{background:"#0D1B2E",border:"1px solid rgba(255,255,255,.08)",borderRadius:9,fontSize:11,fontFamily:"Inter"}}/>
+                  <Bar dataKey="v" name="Jumlah UMKM" fill="#028090" radius={[3,3,0,0]}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="card">
+              <div className="stitle">Compliance & Keamanan</div>
+              {[
+                {l:"UU No. 27/2022 — Perlindungan Data Pribadi",s:"Compliant",c:"#02C39A"},
+                {l:"OJK — Residensi Data di Indonesia",s:"Verified",c:"#02C39A"},
+                {l:"SNAP BI v2 — Standar Open Finance",s:"Active",c:"#02C39A"},
+                {l:"Zero-Knowledge Proof (PII Masking)",s:"Enabled",c:"#028090"},
+                {l:"Federated Learning — No Raw Data Transfer",s:"Active",c:"#028090"},
+                {l:"Solana Devnet — Blockchain Layer",s:"Connected",c:"#7C3AED"},
+              ].map((item,i,arr)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<arr.length-1?"1px solid rgba(255,255,255,.04)":"none"}}>
+                  <span style={{fontSize:11,color:"#475569"}}>{item.l}</span>
+                  <span style={{fontSize:10,fontWeight:600,color:item.c,background:`${item.c}18`,borderRadius:5,padding:"2px 8px",letterSpacing:.5,flexShrink:0,marginLeft:8}}>{item.s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="stitle"><span className="dot"/> Live Transaction Feed — Seluruh UMKM Digdaya<span style={{marginLeft:"auto",fontSize:9,color:"#1E293B",fontFamily:"'JetBrains Mono',monospace"}}>7L1FRY6...LUeE</span></div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                <thead><tr style={{borderBottom:"1px solid rgba(255,255,255,.05)"}}>
+                  {["Entity ID","Tipe","Hash","Status","Waktu"].map(h=>(
+                    <th key={h} style={{textAlign:"left",padding:"7px 12px",color:"#1E293B",fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",fontSize:9,fontFamily:"'JetBrains Mono',monospace"}}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {txs.map((tx:any,i:number)=>{
+                    const st:any={verified:{c:"#02C39A",l:"Verified"},fraud:{c:"#EF4444",l:"Fraud Alert"},pending:{c:"#F4A261",l:"Pending"}};
+                    const {c,l}=st[tx.status]||st.pending;
+                    return (
+                      <tr key={tx.id} className="tx-row" style={{borderBottom:"1px solid rgba(255,255,255,.03)",background:i===0?"rgba(2,195,154,.03)":"transparent"}}>
+                        <td style={{padding:"8px 12px",fontFamily:"'JetBrains Mono',monospace",color:"#475569",fontSize:10}}>{tx.entityId}</td>
+                        <td style={{padding:"8px 12px"}}><span style={{background:"rgba(2,128,144,.12)",color:"#028090",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:600,letterSpacing:.5}}>{tx.type}</span></td>
+                        <td style={{padding:"8px 12px",fontFamily:"'JetBrains Mono',monospace",color:"#1E293B",fontSize:9}}>{tx.hash.slice(0,20)}...</td>
+                        <td style={{padding:"8px 12px"}}><span style={{background:`${c}15`,color:c,border:`1px solid ${c}30`,borderRadius:5,padding:"2px 9px",fontSize:10,fontWeight:600,letterSpacing:.3}}>{l}</span></td>
+                        <td style={{padding:"8px 12px",color:"#334155",fontFamily:"'JetBrains Mono',monospace",fontSize:10}}>{tx.time}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+
+        <footer style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:"12px 24px",display:"flex",justifyContent:"space-between",fontSize:9,color:"#1E293B",position:"relative",zIndex:1,letterSpacing:.5}}>
+          <span>© 2026 Digdaya · UU PDP Compliant</span>
+          <span style={{fontFamily:"'JetBrains Mono',monospace"}}>7L1FRY6iPwCYoppBWEdTzMh1EsyKwubQc1U1YXnTLUeE</span>
+          <span>SNAP BI v2 · OJK Sandbox</span>
+        </footer>
+      </div>
+    </>
+  );
+}

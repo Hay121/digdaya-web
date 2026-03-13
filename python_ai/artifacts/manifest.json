@@ -1,0 +1,44 @@
+{
+  "credit_scoring": {
+    "model_type": "XGBClassifier",
+    "task": "credit_scoring",
+    "trained_at": "2026-03-06T04:34:41Z",
+    "feature_names": [
+      "avg_monthly_cashflow",
+      "cashflow_volatility",
+      "total_transactions_6m",
+      "on_time_payment_ratio",
+      "logistics_delivery_rate",
+      "avg_order_value",
+      "months_in_business",
+      "num_unique_buyers",
+      "agri_sector_flag",
+      "digital_channel_ratio"
+    ],
+    "model_hash_sha256": "e55836131ed2034d0e917ac33796f57c04787a05b2e2dfaff4dcbfd5c12cc92a",
+    "cv_roc_auc_mean": 0.926298789463998,
+    "cv_roc_auc_std": 0.0054443761000593244,
+    "threshold": 0.5
+  },
+  "fraud_detection": {
+    "model_type": "RandomForestClassifier",
+    "task": "fraud_detection",
+    "trained_at": "2026-03-06T04:34:45Z",
+    "feature_names": [
+      "avg_monthly_cashflow",
+      "cashflow_volatility",
+      "total_transactions_6m",
+      "on_time_payment_ratio",
+      "logistics_delivery_rate",
+      "avg_order_value",
+      "months_in_business",
+      "num_unique_buyers",
+      "agri_sector_flag",
+      "digital_channel_ratio"
+    ],
+    "model_hash_sha256": "201f1fe3b4e964600283cbff0b01b01308b9d7e515d15747d1ca2f08856f16ae",
+    "cv_roc_auc_mean": NaN,
+    "cv_roc_auc_std": NaN,
+    "threshold": 0.4
+  }
+}

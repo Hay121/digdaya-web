@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "programs/digdaya_trust_layer"
+]
+resolver = "2"

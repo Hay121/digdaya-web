@@ -1,0 +1,30 @@
+# --- Python (BIANG KEROK 12 RIBU FILE) ---
+**/.venv/
+**/__pycache__/
+*.pyc
+.python-version
+
+# --- Solana / Anchor ---
+.anchor/
+target/
+dist/
+**/node_modules/
+test-ledger/
+**/*.rs.bk
+.yarn/
+
+# --- Next.js / React ---
+.next/
+out/
+build/
+.DS_Store
+
+# --- Security & Logs ---
+.env
+.env.local
+.env.production
+*.log
+npm-debug.log*
+
+# --- Others ---
+.vscode/

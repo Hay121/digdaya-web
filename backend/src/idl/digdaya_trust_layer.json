@@ -1,0 +1,353 @@
+{
+  "version": "0.1.0",
+  "name": "digdaya_trust_layer",
+  "instructions": [
+    {
+      "name": "registerTransaction",
+      "accounts": [
+        {
+          "name": "transactionRecord",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "entityId",
+          "type": "string"
+        },
+        {
+          "name": "transactionType",
+          "type": {
+            "defined": "TransactionType"
+          }
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "updateCreditScore",
+      "accounts": [
+        {
+          "name": "creditRecord",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "entityId",
+          "type": "string"
+        },
+        {
+          "name": "score",
+          "type": "u16"
+        },
+        {
+          "name": "modelHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "computedAt",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "verifyHash",
+      "accounts": [
+        {
+          "name": "transactionRecord",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "candidateHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "TransactionRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "entityId",
+            "type": "string"
+          },
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "transactionType",
+            "type": {
+              "defined": "TransactionType"
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreditRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "entityId",
+            "type": "string"
+          },
+          {
+            "name": "score",
+            "type": "u16"
+          },
+          {
+            "name": "modelHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "computedAt",
+            "type": "i64"
+          },
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "TransactionType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Cashflow"
+          },
+          {
+            "name": "Logistics"
+          },
+          {
+            "name": "AgriSale"
+          },
+          {
+            "name": "Repayment"
+          },
+          {
+            "name": "FraudFlag"
+          }
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "TransactionRegistered",
+      "fields": [
+        {
+          "name": "entityId",
+          "type": "string",
+          "index": false
+        },
+        {
+          "name": "hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "transactionType",
+          "type": {
+            "defined": "TransactionType"
+          },
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        },
+        {
+          "name": "authority",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "CreditScoreUpdated",
+      "fields": [
+        {
+          "name": "entityId",
+          "type": "string",
+          "index": false
+        },
+        {
+          "name": "score",
+          "type": "u16",
+          "index": false
+        },
+        {
+          "name": "modelHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "computedAt",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "HashVerified",
+      "fields": [
+        {
+          "name": "entityId",
+          "type": "string",
+          "index": false
+        },
+        {
+          "name": "storedHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "candidateHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "matches",
+          "type": "bool",
+          "index": false
+        },
+        {
+          "name": "verifiedAt",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "EntityIdTooLong",
+      "msg": "entity_id must be \u2264 64 characters."
+    },
+    {
+      "code": 6001,
+      "name": "InvalidCreditScore",
+      "msg": "Credit score must be in the range [300, 850]."
+    },
+    {
+      "code": 6002,
+      "name": "HashMismatch",
+      "msg": "Hash mismatch \u2014 data integrity check failed."
+    }
+  ],
+  "metadata": {
+    "address": "7L1FRY6iPwCYoppBWEdTzMh1EsyKwubQc1U1YXnTLUeE"
+  },
+  "address": "7L1FRY6iPwCYoppBWEdTzMh1EsyKwubQc1U1YXnTLUeE"
+}

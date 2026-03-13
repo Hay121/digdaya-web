@@ -1,0 +1,19 @@
+[package]
+name    = "digdaya_trust_layer"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "digdaya_trust_layer"
+
+[features]
+no-entrypoint  = []
+no-idl         = []
+no-log-ix-name = []
+cpi            = ["no-entrypoint"]
+default        = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+
