@@ -215,7 +215,7 @@ export default function Onboarding() {
           </div>
         </div>
 
-        <diition:"relative",zIndex:1,maxWidth:680,margin:"0 auto",padding:"36px 24px"}}>
+        <div style={{position:"relative",zIndex:1,maxWidth:680,margin:"0 auto",padding:"36px 24px"}}>
           <div className="fade-up" key={step}>
 
             {/* Step 0 - Profil Usaha */}
