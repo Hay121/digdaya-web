@@ -12,6 +12,7 @@ export default function Dashboard() {
   const router=useRouter();
   const {addToast}=useContext(ToastContext);
   const {lang}=useContext(LangContext);
+  const {theme}=useContext(ThemeContext);
   const [user,setUser]=useState<any>(null);
   const [umkm,setUmkm]=useState<any>(null);
   const [score,setScore]=useState(0);
@@ -76,7 +77,7 @@ export default function Dashboard() {
             <button className="nbtn" onClick={()=>router.push("/admin")}>Panel Lender</button>
             <button className="nbtn" onClick={()=>router.push("/history")}>Riwayat TX</button>
             <button className="nbtn" onClick={()=>router.push("/profile")}>Profil</button>
-            <button className="nbtn" onClick={toggle} style={{fontSize:16,padding:"5px 10px"}}>{theme==="dark"?"☀️":"🌙"}</button>
+            
             <button className="nbtn" onClick={()=>{localStorage.clear();router.push("/")}}>Keluar</button>
           </div>
         </nav>
