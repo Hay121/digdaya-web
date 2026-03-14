@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/router";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 const TENOR_OPTIONS=[
@@ -39,6 +40,20 @@ export default function Report() {
     setTxHash(localStorage.getItem("digdaya_tx_hash")||"");
     setMaskedEntity(localStorage.getItem("digdaya_masked_entity")||"");
   },[]);
+  const exportPDF = async () => {
+    const el = document.getElementById("report-content");
+    if(!el) return;
+    const { default: jsPDF } = await import("jspdf");
+    const { default: html2canvas } = await import("html2canvas");
+    const canvas = await html2canvas(el, { backgroundColor:"#060E1C", scale:1.5, useCORS:true });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+    const w = pdf.internal.pageSize.getWidth();
+    const h = (canvas.height * w) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, w, Math.min(h, 297));
+    pdf.save(`laporan-kredit-digdaya-${data.bizName||"umkm"}.pdf`);
+  };
+
   if(!data||!user) return null;
   const sc=score>=740?"#02C39A":score>=670?"#028090":score>=580?"#F4A261":"#EF4444";
   const sl=score>=740?"Excellent":score>=670?"Good":score>=580?"Fair":"Poor";
@@ -87,9 +102,9 @@ export default function Report() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        /* fonts via _app.tsx */
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#060E1C;color:#F1F5F9;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+        body{background:#060E1C;color:#F1F5F9;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#1E3A5F;border-radius:3px}
         @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
         @keyframes spin{to{transform:rotate(360deg)}}
@@ -97,13 +112,13 @@ export default function Report() {
         .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px}
         .stitle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#64748B;margin-bottom:14px;letter-spacing:1px;text-transform:uppercase}
         .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
-        .inp{background:#0D1B2E;border:1px solid rgba(255,255,255,.09);border-radius:9px;color:#F1F5F9;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;width:100%;outline:none;transition:border-color .2s}
+        .inp{background:#0D1B2E;border:1px solid rgba(255,255,255,.09);border-radius:9px;color:#F1F5F9;padding:11px 14px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;width:100%;outline:none;transition:border-color .2s}
         .inp:focus{border-color:#028090}
         .tenor-card{background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.07);border-radius:11px;padding:14px 16px;cursor:pointer;transition:all .2s}
         .tenor-card:hover{border-color:rgba(2,128,144,.4);background:rgba(2,128,144,.05)}
         .tenor-card.active{border-color:#028090;background:rgba(2,128,144,.1)}
         .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.08);border-top-color:#02C39A;border-radius:50%;animation:spin .8s linear infinite}
-        .nbtn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#64748B;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+        .nbtn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#64748B;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s}
         .nbtn:hover{background:rgba(255,255,255,.08);color:#94A3B8}
       `}</style>
       {showModal&&(
@@ -158,7 +173,7 @@ export default function Report() {
             <button className="nbtn" onClick={()=>router.push("/dashboard")}>Dashboard</button>
           </div>
         </nav>
-        <div style={{position:"relative",zIndex:1,maxWidth:980,margin:"0 auto",padding:"28px 24px"}}>
+        <div id="report-content" style={{position:"relative",zIndex:1,maxWidth:980,margin:"0 auto",padding:"28px 24px"}}>
           {disbursed&&(
             <div className="fade-up" style={{background:"rgba(2,195,154,.06)",border:"1px solid rgba(2,195,154,.2)",borderRadius:16,padding:"22px 26px",marginBottom:22,display:"flex",gap:18,alignItems:"center"}}>
               <div style={{width:46,height:46,borderRadius:12,background:"rgba(2,195,154,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>◈</div>
@@ -300,6 +315,17 @@ export default function Report() {
                 ◈ Verifikasi Transaksi di Solana Explorer ↗
               </a>
             )}
+            <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12,marginTop:12,alignItems:"center"}}>
+              <button onClick={exportPDF} style={{background:"rgba(2,128,144,.1)",border:"1px solid rgba(2,128,144,.2)",borderRadius:10,padding:"11px",fontSize:12,color:"#028090",fontWeight:600,cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",letterSpacing:.2,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                ↓ Download Laporan PDF
+              </button>
+              {isRealTx&&txExplorer&&(
+                <div style={{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)",borderRadius:10,padding:"10px",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                  <QRCodeSVG value={txExplorer} size={90} bgColor="transparent" fgColor="#02C39A" level="M"/>
+                  <div style={{fontSize:9,color:"#334155",fontFamily:"'JetBrains Mono',monospace",textAlign:"center"}}>Scan untuk verifikasi</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

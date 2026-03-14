@@ -29,10 +29,9 @@ export default function Landing() {
     setLoading(true);
     await new Promise(r => setTimeout(r, 1000));
     const db = JSON.parse(localStorage.getItem("digdaya_users_db") || "[]");
-    const found = db.find((u) => u.email === form.email && u.password === btoa(form.password));
+    const found = db.find((u: any) => u.email === form.email && u.password === btoa(form.password));
     if (!found) { setLoading(false); return setError("Email atau password salah. Belum punya akun? Silakan daftar."); }
     localStorage.setItem("digdaya_user", JSON.stringify(found));
-    const saved = "ok";
     setLoading(false);
     router.push(localStorage.getItem("digdaya_step") === "done" ? "/dashboard" : "/onboarding");
   };
@@ -45,9 +44,9 @@ export default function Landing() {
   return (
     <>
       <style>{`
-        /* fonts loaded via _app.tsx */
         *{box-sizing:border-box;margin:0;padding:0}
         body{background:#060E1C;color:#F1F5F9;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
         @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
         .fade-up{animation:fadeUp .5s ease forwards}
@@ -70,7 +69,6 @@ export default function Landing() {
           <div key={i} style={{position:"fixed",left:x,top:y,width:s,height:s,borderRadius:"50%",background:c,filter:`blur(${s*.7}px)`,opacity:.07,pointerEvents:"none",zIndex:0}}/>
         ))}
         <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,backgroundImage:"linear-gradient(rgba(2,128,144,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(2,128,144,.03) 1px,transparent 1px)",backgroundSize:"48px 48px"}}/>
-
         <nav style={{position:"relative",zIndex:10,padding:"0 48px",height:64,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.05)"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:34,height:34,borderRadius:9,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:17}}>D</div>
@@ -83,7 +81,6 @@ export default function Landing() {
             <span className="dot"/><span style={{color:"#02C39A",fontWeight:600,letterSpacing:.5}}>Solana Devnet</span>
           </div>
         </nav>
-
         {mode === "landing" && (
           <div style={{position:"relative",zIndex:1,maxWidth:1200,margin:"0 auto",padding:"64px 48px"}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:80,alignItems:"center",minHeight:"78vh"}}>
@@ -123,7 +120,6 @@ export default function Landing() {
             </div>
           </div>
         )}
-
         {(mode === "login" || mode === "register") && (
           <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",justifyContent:"center",minHeight:"calc(100vh - 64px)",padding:24}}>
             <div className="fade-up card" style={{width:"100%",maxWidth:420,padding:"36px 40px"}}>
@@ -133,12 +129,12 @@ export default function Landing() {
                 <p style={{color:"#475569",fontSize:13}}>{mode==="login"?"Masuk ke akun UMKM Anda":"Mulai perjalanan kredit yang adil"}</p>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {mode==="register" && (<div><label>Nama Lengkap</label><input className="input" placeholder="cth. Budi Santoso" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>)}
+                {mode==="register"&&(<div><label>Nama Lengkap</label><input className="input" placeholder="cth. Budi Santoso" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>)}
                 <div><label>Alamat Email</label><input className="input" type="email" placeholder="nama@email.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></div>
-                {mode==="register" && (<div><label>Nomor WhatsApp</label><input className="input" placeholder="08xx-xxxx-xxxx" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></div>)}
+                {mode==="register"&&(<div><label>Nomor WhatsApp</label><input className="input" placeholder="08xx-xxxx-xxxx" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></div>)}
                 <div><label>Password</label><input className="input" type="password" placeholder="Minimal 6 karakter" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div>
-                {mode==="register" && (<div><label>Konfirmasi Password</label><input className="input" type="password" placeholder="Ulangi password" value={form.confirmPassword} onChange={e=>setForm({...form,confirmPassword:e.target.value})}/></div>)}
-                {error && (<div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 13px",fontSize:12,color:"#FCA5A5",lineHeight:1.5}}>{error}</div>)}
+                {mode==="register"&&(<div><label>Konfirmasi Password</label><input className="input" type="password" placeholder="Ulangi password" value={form.confirmPassword} onChange={e=>setForm({...form,confirmPassword:e.target.value})}/></div>)}
+                {error&&(<div style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 13px",fontSize:12,color:"#FCA5A5",lineHeight:1.5}}>{error}</div>)}
                 <button className="btn-primary" style={{marginTop:6}} onClick={mode==="login"?handleLogin:handleRegister} disabled={loading}>
                   {loading?"Memproses...":mode==="login"?"Masuk ke Dashboard":"Buat Akun & Lanjut"}
                 </button>
@@ -151,7 +147,6 @@ export default function Landing() {
             </div>
           </div>
         )}
-
         <footer style={{position:"relative",zIndex:1,borderTop:"1px solid rgba(255,255,255,.04)",padding:"14px 48px",display:"flex",justifyContent:"space-between",fontSize:10,color:"#1E293B",letterSpacing:.5}}>
           <span>© 2026 Digdaya · UU PDP · OJK Sandbox</span>
           <span style={{fontFamily:"'JetBrains Mono',monospace"}}>7L1FRY6iPwCYoppBWEdTzMh1EsyKwubQc1U1YXnTLUeE</span>

@@ -67,6 +67,7 @@ export default function Dashboard() {
             </div>
             {score>0&&<button className="nbtn p" onClick={()=>router.push("/report")}>Laporan & Pencairan</button>}
             {!score&&<button className="nbtn p" onClick={()=>router.push("/onboarding")}>Ajukan Kredit</button>}
+            <button className="nbtn" onClick={()=>router.push("/admin")}>Panel Lender</button>
             <button className="nbtn" onClick={()=>{localStorage.clear();router.push("/")}}>Keluar</button>
           </div>
         </nav>

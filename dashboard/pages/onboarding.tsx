@@ -1,5 +1,52 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+const PROVINCES = [
+  "Aceh","Sumatera Utara","Sumatera Barat","Riau","Jambi","Sumatera Selatan",
+  "Bengkulu","Lampung","Kepulauan Bangka Belitung","Kepulauan Riau","DKI Jakarta",
+  "Jawa Barat","Jawa Tengah","DI Yogyakarta","Jawa Timur","Banten","Bali",
+  "Nusa Tenggara Barat","Nusa Tenggara Timur","Kalimantan Barat","Kalimantan Tengah",
+  "Kalimantan Selatan","Kalimantan Timur","Kalimantan Utara","Sulawesi Utara",
+  "Sulawesi Tengah","Sulawesi Selatan","Sulawesi Tenggara","Gorontalo","Sulawesi Barat",
+  "Maluku","Maluku Utara","Papua Barat","Papua","Papua Selatan","Papua Tengah",
+  "Papua Pegunungan","Papua Barat Daya",
+];
+
+function ProvinceSearch({value, onChange}: {value:string, onChange:(v:string)=>void}) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const filtered = PROVINCES.filter(p => p.toLowerCase().includes(query.toLowerCase())).slice(0,8);
+  return (
+    <div style={{position:"relative"}}>
+      <input
+        className="inp"
+        placeholder="Ketik nama provinsi..."
+        value={query}
+        onChange={e=>{setQuery(e.target.value);setOpen(true);onChange("");}}
+        onFocus={()=>setOpen(true)}
+        onBlur={()=>setTimeout(()=>setOpen(false),150)}
+        autoComplete="off"
+      />
+      {open && query && filtered.length>0 && (
+        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0D1B2E",border:"1px solid rgba(255,255,255,.12)",borderRadius:9,zIndex:100,marginTop:4,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.5)"}}>
+          {filtered.map(p=>(
+            <div key={p} onMouseDown={()=>{setQuery(p);onChange(p);setOpen(false);}}
+              style={{padding:"10px 14px",fontSize:13,color:p===value?"#02C39A":"#94A3B8",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.04)",background:p===value?"rgba(2,195,154,.08)":"transparent",fontWeight:p===value?600:400,transition:"background .15s"}}
+              onMouseEnter={e=>(e.currentTarget.style.background="rgba(2,128,144,.1)")}
+              onMouseLeave={e=>(e.currentTarget.style.background=p===value?"rgba(2,195,154,.08)":"transparent")}
+            >
+              {p.split("").map((ch,i)=>{
+                const qi=p.toLowerCase().indexOf(query.toLowerCase());
+                const inMatch=i>=qi&&i<qi+query.length&&qi>-1;
+                return <span key={i} style={{color:inMatch?"#02C39A":undefined,fontWeight:inMatch?700:undefined}}>{ch}</span>;
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const steps = ["Profil Usaha","Data Keuangan","Rekam Jejak","Dokumen","Konfirmasi"];
 const fmtRp=(v:string)=>{const n=v.replace(/\D/g,"");if(!n)return "";return "Rp "+parseInt(n).toLocaleString("id-ID");};
 const parseRp=(v:string)=>v.replace(/\D/g,"");
@@ -52,25 +99,25 @@ export default function Onboarding() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400&display=swap');
+        /* fonts via _app.tsx */
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#060E1C;color:#F1F5F9;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+        body{background:#060E1C;color:#F1F5F9;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         .fade-up{animation:fadeUp .4s ease forwards}
-        .inp{background:#0D1B2E;border:1px solid rgba(255,255,255,.09);border-radius:9px;color:#F1F5F9;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;width:100%;outline:none;transition:border-color .2s}
+        .inp{background:#0D1B2E;border:1px solid rgba(255,255,255,.09);border-radius:9px;color:#F1F5F9;padding:11px 14px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;width:100%;outline:none;transition:border-color .2s}
         .inp:focus{border-color:#028090;background:#0F2035}
         .inp::placeholder{color:#2D3F55}
         select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
         select.inp option{background:#0D1B2E;color:#F1F5F9}
         .lbl{font-size:11px;color:#64748B;display:block;margin-bottom:5px;font-weight:500;letter-spacing:.4px;text-transform:uppercase}
-        .btn{background:linear-gradient(135deg,#028090,#02C39A);border:none;border-radius:9px;color:#fff;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+        .btn{background:linear-gradient(135deg,#028090,#02C39A);border:none;border-radius:9px;color:#fff;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s}
         .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(2,195,154,.25)}
         .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-        .btn-back{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#64748B;padding:12px 26px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif}
+        .btn-back{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#64748B;padding:12px 26px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif}
         .btn-back:hover{background:rgba(255,255,255,.08);color:#94A3B8}
         .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
         .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:13px}
-        .tog{padding:7px 18px;border-radius:7px;border:1px solid rgba(255,255,255,.09);background:transparent;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+        .tog{padding:7px 18px;border-radius:7px;border:1px solid rgba(255,255,255,.09);background:transparent;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s}
         .tog.active{border-color:#02C39A;background:rgba(2,195,154,.12);color:#02C39A}
         .badge{display:inline-flex;align-items:center;gap:5px;background:rgba(2,128,144,.1);border:1px solid rgba(2,128,144,.2);border-radius:5px;padding:3px 8px;font-size:10px;color:#028090;font-weight:600;letter-spacing:.5px}
       `}</style>
@@ -122,10 +169,7 @@ export default function Onboarding() {
                   </div>
                   <div className="g2">
                     <div><label className="lbl">Provinsi</label>
-                      <select className="inp" value={form.province} onChange={e=>u("province",e.target.value)}>
-                        <option value="">Pilih provinsi</option>
-                        {["DKI Jakarta","Jawa Barat","Jawa Tengah","Jawa Timur","Banten","DI Yogyakarta","Sumatera Utara","Sumatera Selatan","Kalimantan Timur","Sulawesi Selatan","Bali","NTB","Papua"].map(p=><option key={p} value={p}>{p}</option>)}
-                      </select>
+                      <ProvinceSearch value={form.province} onChange={v=>u("province",v)}/>
                     </div>
                     <div><label className="lbl">Kota / Kabupaten</label><input className="inp" placeholder="cth. Kab. Banyumas" value={form.city} onChange={e=>u("city",e.target.value)}/></div>
                   </div>
