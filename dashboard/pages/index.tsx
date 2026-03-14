@@ -14,7 +14,11 @@ export default function Landing() {
     if (form.password.length < 6) return setError("Password minimal 6 karakter.");
     setLoading(true);
     await new Promise(r => setTimeout(r, 1200));
-    localStorage.setItem("digdaya_user", JSON.stringify({ name: form.name, email: form.email, phone: form.phone, id: "USR-" + Date.now() }));
+    const newUser = { name: form.name, email: form.email, phone: form.phone, id: "USR-" + Date.now(), password: btoa(form.password) };
+    const db = JSON.parse(localStorage.getItem("digdaya_users_db") || "[]");
+    db.push(newUser);
+    localStorage.setItem("digdaya_users_db", JSON.stringify(db));
+    localStorage.setItem("digdaya_user", JSON.stringify(newUser));
     localStorage.setItem("digdaya_step", "onboarding");
     setLoading(false);
     router.push("/onboarding");
@@ -24,8 +28,11 @@ export default function Landing() {
     if (!form.email || !form.password) return setError("Email dan password wajib diisi.");
     setLoading(true);
     await new Promise(r => setTimeout(r, 1000));
-    const saved = localStorage.getItem("digdaya_user");
-    if (!saved) { setLoading(false); return setError("Akun tidak ditemukan. Silakan daftar terlebih dahulu."); }
+    const db = JSON.parse(localStorage.getItem("digdaya_users_db") || "[]");
+    const found = db.find((u) => u.email === form.email && u.password === btoa(form.password));
+    if (!found) { setLoading(false); return setError("Email atau password salah. Belum punya akun? Silakan daftar."); }
+    localStorage.setItem("digdaya_user", JSON.stringify(found));
+    const saved = "ok";
     setLoading(false);
     router.push(localStorage.getItem("digdaya_step") === "done" ? "/dashboard" : "/onboarding");
   };
@@ -38,18 +45,18 @@ export default function Landing() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        /* fonts loaded via _app.tsx */
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#060E1C;color:#F1F5F9;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+        body{background:#060E1C;color:#F1F5F9;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
         @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
         .fade-up{animation:fadeUp .5s ease forwards}
-        .btn-primary{background:linear-gradient(135deg,#028090,#02C39A);border:none;border-radius:10px;color:#fff;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;width:100%;letter-spacing:.3px}
+        .btn-primary{background:linear-gradient(135deg,#028090,#02C39A);border:none;border-radius:10px;color:#fff;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;width:100%;letter-spacing:.3px}
         .btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(2,195,154,.3)}
         .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
-        .btn-outline{background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#E2E8F0;padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;width:100%}
+        .btn-outline{background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#E2E8F0;padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;width:100%}
         .btn-outline:hover{border-color:#02C39A;color:#02C39A}
-        .input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;color:#F1F5F9;padding:12px 14px;font-size:14px;font-family:'Inter',sans-serif;width:100%;outline:none;transition:border-color .2s}
+        .input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:10px;color:#F1F5F9;padding:12px 14px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;width:100%;outline:none;transition:border-color .2s}
         .input:focus{border-color:#028090;background:rgba(255,255,255,.06)}
         .input::placeholder{color:#3D4F63}
         .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;backdrop-filter:blur(12px)}
