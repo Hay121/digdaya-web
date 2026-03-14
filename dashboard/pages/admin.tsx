@@ -93,7 +93,7 @@ export default function Admin() {
         </nav>
         <main style={{position:"relative",zIndex:1,padding:"24px 28px",maxWidth:1280,margin:"0 auto"}}>
           <div style={{marginBottom:22}}>
-            <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:3,Spacing:-.4}}>Panel Lender — Kelola Pengajuan UMKM</h1>
+            <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:3,letterSpacing:-.4}}>Panel Lender — Kelola Pengajuan UMKM</h1>
             <p style={{color:"#334155",fontSize:12}}>Tinjau, verifikasi, dan setujui pengajuan kredit berbasis AI + blockchain</p>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
