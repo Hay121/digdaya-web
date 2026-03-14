@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from "react";
-import { ThemeContext, ToastContext } from "./_app";
+import { ThemeContext, ToastContext, LangContext } from "./_app";
+import NavBar from "../components/NavBar";
 import { useRouter } from "next/router";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 const gHash=()=>Array.from({length:16},()=>Math.floor(Math.random()*16).toString(16)).join("");
@@ -9,8 +10,8 @@ const foodData=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.get
 const sectorData=[{s:"Perdagangan",v:2840},{s:"Pertanian",v:1650},{s:"Jasa",v:2100},{s:"Manufaktur",v:980},{s:"Perikanan",v:760}];
 export default function Dashboard() {
   const router=useRouter();
-  const {theme,toggle}=useContext(ThemeContext);
   const {addToast}=useContext(ToastContext);
+  const {lang}=useContext(LangContext);
   const [user,setUser]=useState<any>(null);
   const [umkm,setUmkm]=useState<any>(null);
   const [score,setScore]=useState(0);

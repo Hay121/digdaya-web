@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import NavBar from "../components/NavBar";
 import { useRouter } from "next/router";
 import { ThemeContext, ToastContext } from "./_app";
 
@@ -153,18 +154,7 @@ export default function Profile() {
                   <button className="btn" style={{width:"fit-content"}} disabled={saving} onClick={handleChangePassword}>{saving?"Memproses...":"Ubah Password"}</button>
                 </div>
               </div>
-              <div className="card" style={{padding:"18px 20px"}}>
-                <div style={{fontFamily:"var(--font-head)",fontSize:12,fontWeight:700,color:"var(--text3)",letterSpacing:1,textTransform:"uppercase",marginBottom:14}}>Tampilan</div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div>
-                    <div style={{fontWeight:600,fontSize:13,marginBottom:2}}>Mode {theme==="dark"?"Gelap":"Terang"}</div>
-                    <div style={{fontSize:11,color:"var(--text3)"}}>Sesuaikan tampilan dengan preferensi Anda</div>
-                  </div>
-                  <button onClick={toggle} style={{background:theme==="dark"?"linear-gradient(135deg,#028090,#02C39A)":"linear-gradient(135deg,#F4A261,#E58C3A)",border:"none",borderRadius:20,padding:"8px 18px",color:"#fff",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"var(--font)"}}>
-                    {theme==="dark"?"☀️ Mode Terang":"🌙 Mode Gelap"}
-                  </button>
-                </div>
-              </div>
+
               <div className="card" style={{padding:"18px 20px"}}>
                 <div style={{fontFamily:"var(--font-head)",fontSize:12,fontWeight:700,color:"var(--text3)",letterSpacing:1,textTransform:"uppercase",marginBottom:14}}>Zona Bahaya</div>
                 <button onClick={()=>{localStorage.clear();router.push("/");}} style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:9,color:"#EF4444",padding:"10px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>Keluar dari Akun</button>
