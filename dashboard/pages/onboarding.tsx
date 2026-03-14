@@ -53,6 +53,7 @@ const parseRp=(v:string)=>v.replace(/\D/g,"");
 export default function Onboarding() {
   const router=useRouter();
   const [step,setStep]=useState(0);
+  const goStep=(n:number)=>{ setStep(n); localStorage.setItem("digdaya_onboarding_step",n.toString()); };
   const [user,setUser]=useState<any>(null);
   const [loading,setLoading]=useState(false);
   const [form,setForm]=useState({
@@ -65,13 +66,21 @@ export default function Onboarding() {
     const u=localStorage.getItem("digdaya_user");
     if(!u){router.push("/");return;}
     setUser(JSON.parse(u));
+    const draft = localStorage.getItem("digdaya_umkm_draft");
+    const stepDraft = localStorage.getItem("digdaya_onboarding_step");
+    if(draft) setForm(JSON.parse(draft));
+    if(stepDraft) setStep(parseInt(stepDraft));
   },[]);
-  const u=(k:string,v:any)=>setForm(f=>({...f,[k]:v}));
+  const u=(k:string,v:any)=>setForm(f=>{
+    const updated={...f,[k]:v};
+    localStorage.setItem("digdaya_umkm_draft",JSON.stringify(updated));
+    return updated;
+  });
   const cashflow=parseInt(parseRp(form.monthlyRevenue)||"0")-parseInt(parseRp(form.monthlyExpense)||"0");
   const handleSubmit=async()=>{
     setLoading(true);
     localStorage.setItem("digdaya_umkm_data",JSON.stringify(form));
-    localStorage.setItem("digdaya_step","done");
+    localStorage.setItem("digdaya_step","done"); localStorage.removeItem("digdaya_umkm_draft"); localStorage.removeItem("digdaya_onboarding_step");
     try {
       const usr=JSON.parse(localStorage.getItem("digdaya_user")||"{}");
       const res=await fetch("https://kortney-hamulate-annamarie.ngrok-free.dev/api/v1/transactions",{
@@ -315,9 +324,9 @@ export default function Onboarding() {
               </div>
             )}
             <div style={{display:"flex",justifyContent:"space-between",marginTop:32,gap:12}}>
-              {step>0?<button className="btn-back" onClick={()=>setStep(s=>s-1)}>← Kembali</button>:<div/>}
+              {step>0?<button className="btn-back" onClick={()=>goStep(step-1)}>← Kembali</button>:<div/>}
               {step<4
-                ?<button className="btn" onClick={()=>setStep(s=>s+1)}>Lanjut</button>
+                ?<button className="btn" onClick={()=>goStep(step+1)}>Lanjut</button>
                 :<button className="btn" onClick={handleSubmit} disabled={loading||!form.selfDeclaration}>{loading?"Mengirim ke AI & Blockchain...":"Analisis Kredit Sekarang"}</button>
               }
             </div>
