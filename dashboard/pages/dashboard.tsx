@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [txs,setTxs]=useState<any[]>([]);
   const [liveCount,setLiveCount]=useState(1247);
   const [mounted,setMounted]=useState(false);
+  const [loanStatus,setLoanStatus]=useState("");
   useEffect(()=>{
     setMounted(true);
     const u=localStorage.getItem("digdaya_user");
@@ -26,6 +27,7 @@ export default function Dashboard() {
     setUser(JSON.parse(u));
     if(d)setUmkm(JSON.parse(d));
     if(s)setScore(parseInt(s));
+    setLoanStatus(localStorage.getItem("digdaya_loan_status")||"");
     setTxs(Array.from({length:8},makeTx));
   },[]);
   useEffect(()=>{
@@ -84,12 +86,45 @@ export default function Dashboard() {
             <p style={{color:"#334155",fontSize:12}}>{umkm?.bizType||"Belum ada data usaha"}{umkm?.city?` · ${umkm.city}`:""}{umkm?.province?`, ${umkm.province}`:""}</p>
           </div>
 
+          {loanStatus==="approved"&&(
+            <div style={{background:"rgba(2,195,154,.06)",border:"1px solid rgba(2,195,154,.2)",borderRadius:14,padding:"16px 22px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",gap:14,alignItems:"center"}}>
+                <div style={{fontSize:22}}>◈</div>
+                <div>
+                  <div style={{fontFamily:"var(--font-head)",fontSize:15,fontWeight:800,color:"#02C39A",marginBottom:2}}>Kredit Anda Disetujui!</div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>Dana sudah dicairkan. Lihat jadwal angsuran Anda.</div>
+                </div>
+              </div>
+              <button onClick={()=>router.push("/angsuran")} style={{background:"linear-gradient(135deg,#028090,#02C39A)",border:"none",borderRadius:9,color:"#fff",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)",flexShrink:0}}>Lihat Angsuran</button>
+            </div>
+          )}
+          {loanStatus==="rejected"&&(
+            <div style={{background:"rgba(239,68,68,.05)",border:"1px solid rgba(239,68,68,.15)",borderRadius:14,padding:"16px 22px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",gap:14,alignItems:"center"}}>
+                <div style={{fontSize:22,color:"#EF4444"}}>◐</div>
+                <div>
+                  <div style={{fontFamily:"var(--font-head)",fontSize:15,fontWeight:800,color:"#EF4444",marginBottom:2}}>Pengajuan Ditolak</div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>Tingkatkan skor kredit dan coba lagi bulan depan. Lihat rekomendasi di laporan.</div>
+                </div>
+              </div>
+              <button onClick={()=>router.push("/report")} style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.2)",borderRadius:9,color:"#EF4444",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)",flexShrink:0}}>Lihat Rekomendasi</button>
+            </div>
+          )}
+          {loanStatus==="pending"&&(
+            <div style={{background:"rgba(244,162,97,.05)",border:"1px solid rgba(244,162,97,.15)",borderRadius:14,padding:"16px 22px",marginBottom:16,display:"flex",gap:14,alignItems:"center"}}>
+              <div style={{fontSize:22,color:"#F4A261"}}>◎</div>
+              <div>
+                <div style={{fontFamily:"var(--font-head)",fontSize:15,fontWeight:800,color:"#F4A261",marginBottom:2}}>Pengajuan Sedang Ditinjau</div>
+                <div style={{fontSize:12,color:"var(--text3)"}}>Tim lender Digdaya sedang memverifikasi pengajuan Anda. Proses 1-3 hari kerja.</div>
+              </div>
+            </div>
+          )}
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
             {[
               {l:"Credit Score",v:score>0?score.toString():"—",s:score>0?sl:"Belum dianalisis",c:score>0?sc:"#1E293B",i:"◎"},
               {l:"Pengajuan Kredit",v:loan>0?`Rp ${(loan/1e6).toFixed(0)}jt`:"—",s:umkm?.loanPurpose||"Belum diisi",c:"#028090",i:"◈"},
               {l:"Total TX Tercatat",v:liveCount.toLocaleString("id-ID"),s:"Verified on-chain",c:"#02C39A",i:"◐"},
-              {l:"Status Eligibilitas",v:score>0?(score>=580?"Eligible":"Review"):"Pending",s:score>0?(score>=580?"Layak mengajukan kredit":"Perlu peningkatan skor"):"Data belum lengkap",c:score>=580&&score>0?"#02C39A":"#F4A261",i:"◉"},
+              {l:"Status Pengajuan",v:loanStatus==="approved"?"Disetujui":loanStatus==="pending"?"Menunggu Review":loanStatus==="rejected"?"Ditolak":score>0?"Belum Diajukan":"Pending",s:loanStatus==="approved"?"Dana siap dicairkan":loanStatus==="pending"?"Sedang ditinjau lender":loanStatus==="rejected"?"Coba lagi bulan depan":"Ajukan kredit sekarang",c:loanStatus==="approved"?"#02C39A":loanStatus==="pending"?"#F4A261":loanStatus==="rejected"?"#EF4444":"#028090",i:"◉"},
             ].map((s,i)=>(
               <div key={i} className="stat-card">
                 <div style={{position:"absolute",top:0,left:0,right:0,height:1.5,background:`linear-gradient(90deg,transparent,${s.c}80,transparent)`}}/>
@@ -143,7 +178,10 @@ export default function Dashboard() {
                       </div>
                     ))}
                   </div>
-                  <button style={{background:"linear-gradient(135deg,#028090,#02C39A)",border:"none",borderRadius:9,color:"#fff",padding:"10px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",width:"100%",letterSpacing:.2}} onClick={()=>router.push("/report")}>Lihat Laporan & Cairkan Dana</button>
+                  {loanStatus==="approved"
+                    ?<button style={{background:"linear-gradient(135deg,#02C39A,#028090)",border:"none",borderRadius:9,color:"#fff",padding:"10px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)",width:"100%"}} onClick={()=>router.push("/angsuran")}>Lihat Jadwal Angsuran</button>
+                    :<button style={{background:"linear-gradient(135deg,#028090,#02C39A)",border:"none",borderRadius:9,color:"#fff",padding:"10px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)",width:"100%"}} onClick={()=>router.push("/report")}>Lihat Laporan & Ajukan Kredit</button>
+                  }
                 </div>
               ):(
                 <div style={{textAlign:"center",padding:"20px 8px"}}>

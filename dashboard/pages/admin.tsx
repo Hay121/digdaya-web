@@ -53,6 +53,14 @@ export default function Admin() {
     await new Promise(r=>setTimeout(r,1200));
     setApps(a=>a.map(x=>x.id===id?{...x,status:action}:x));
     if(selected?.id===id) setSelected((s:any)=>({...s,status:action}));
+    // Jika LIVE app → update localStorage agar user bisa redirect
+    const liveApp = apps.find(a=>a.id==="UM-LIVE"&&a.id===id);
+    if(liveApp||id==="UM-LIVE"){
+      localStorage.setItem("digdaya_loan_status", action);
+      if(action==="approved"){
+        localStorage.setItem("digdaya_approved_date", new Date().toISOString());
+      }
+    }
     setProcessing(false);
   };
   return (

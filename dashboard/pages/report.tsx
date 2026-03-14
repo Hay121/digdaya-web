@@ -57,8 +57,11 @@ export default function Report() {
   if(!data||!user) return null;
   const sc=score>=740?"#02C39A":score>=670?"#028090":score>=580?"#F4A261":"#EF4444";
   const sl=score>=740?"Excellent":score>=670?"Good":score>=580?"Fair":"Poor";
-  const maxLoan=score>=740?500000000:score>=670?200000000:score>=580?75000000:0;
+  const maxLoan=score>=740?150000000:score>=670?75000000:score>=580?25000000:score>=520?10000000:0;
   const loan=Math.min(parseInt(parseRp(loanInput)||"0"),maxLoan);
+  useEffect(()=>{
+    if(tenor) localStorage.setItem("digdaya_tenor", tenor.toString());
+  },[tenor]);
   const tenorObj=TENOR_OPTIONS.find(t=>t.months===tenor);
   const rate=tenorObj?tenorObj.rate:0;
   const monthly=tenor&&loan>0?Math.round(loan*(rate/100+1/tenor)):0;
@@ -96,6 +99,9 @@ export default function Report() {
         localStorage.setItem("digdaya_disburse_explorer",d.explorer||"");
       }
     } catch(e){console.warn("Backend offline");}
+    localStorage.setItem("digdaya_loan_status","pending");
+    localStorage.setItem("digdaya_loan_amount", loan.toString());
+    localStorage.setItem("digdaya_tenor", tenor?.toString()||"12");
     setProcessing(false);setDisbursed(true);setShowModal(false);
   };
   const approvalLabels=["Memverifikasi identitas UMKM","Memeriksa kelayakan kredit final","Mengirim kontrak digital","Merekam ke Solana Devnet","Memproses instruksi transfer"];
@@ -178,7 +184,7 @@ export default function Report() {
             <div className="fade-up" style={{background:"rgba(2,195,154,.06)",border:"1px solid rgba(2,195,154,.2)",borderRadius:16,padding:"22px 26px",marginBottom:22,display:"flex",gap:18,alignItems:"center"}}>
               <div style={{width:46,height:46,borderRadius:12,background:"rgba(2,195,154,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>◈</div>
               <div style={{flex:1}}>
-                <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,color:"#02C39A",marginBottom:3}}>Dana Berhasil Dicairkan</div>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,color:"#F4A261",marginBottom:3}}>Pengajuan Dikirim — Menunggu Persetujuan Lender</div>
                 <div style={{fontSize:12,color:"#475569"}}>Rp {loan.toLocaleString("id-ID")} sedang dalam proses transfer ke rekening <strong style={{color:"#94A3B8"}}>{user.name}</strong></div>
               </div>
               {localStorage.getItem("digdaya_disburse_explorer")&&(

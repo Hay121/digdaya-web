@@ -1,42 +1,45 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg:        #060E1C;
-  --bg2:       #0A1628;
-  --card:      rgba(255,255,255,.03);
-  --border:    rgba(255,255,255,.07);
-  --border2:   rgba(255,255,255,.04);
-  --text1:     #F1F5F9;
-  --text2:     #94A3B8;
-  --text3:     #475569;
-  --text4:     #334155;
-  --text5:     #1E293B;
-  --primary:   #028090;
-  --accent:    #02C39A;
-  --warn:      #F4A261;
-  --danger:    #EF4444;
-  --purple:    #7C3AED;
+  --bg:      #060E1C;
+  --bg2:     #0A1628;
+  --bg3:     #0D1B2E;
+  --card:    rgba(255,255,255,.03);
+  --border:  rgba(255,255,255,.07);
+  --border2: rgba(255,255,255,.04);
+  --text1:   #F1F5F9;
+  --text2:   #94A3B8;
+  --text3:   #64748B;
+  --text4:   #475569;
+  --text5:   #334155;
+  --primary: #028090;
+  --accent:  #02C39A;
+  --warn:    #F4A261;
+  --danger:  #EF4444;
+  --purple:  #7C3AED;
+  --shadow:  0 8px 32px rgba(0,0,0,.4);
   --font:      'DM Sans', sans-serif;
   --font-head: 'Syne', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
 [data-theme="light"] {
-  --bg:        #F8FAFC;
-  --bg2:       #F1F5F9;
-  --card:      rgba(0,0,0,.03);
-  --border:    rgba(0,0,0,.08);
-  --border2:   rgba(0,0,0,.05);
-  --text1:     #0F172A;
-  --text2:     #334155;
-  --text3:     #64748B;
-  --text4:     #94A3B8;
-  --text5:     #CBD5E1;
-  --primary:   #028090;
-  --accent:    #02C39A;
+  --bg:      #F0F4F8;
+  --bg2:     #E8EEF4;
+  --bg3:     #DDE5EE;
+  --card:    rgba(255,255,255,.85);
+  --border:  rgba(0,0,0,.09);
+  --border2: rgba(0,0,0,.06);
+  --text1:   #1A2332;
+  --text2:   #2D3F55;
+  --text3:   #4A5E72;
+  --text4:   #6B7E92;
+  --text5:   #8A9BB0;
+  --shadow:  0 8px 32px rgba(0,0,0,.1);
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior: smooth; }
 
 body {
   background: var(--bg);
@@ -45,22 +48,24 @@ body {
   -webkit-font-smoothing: antialiased;
   font-size: 15px;
   line-height: 1.6;
-  transition: background .3s, color .3s;
+  transition: background .25s, color .25s;
 }
 
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg2); }
 ::-webkit-scrollbar-thumb { background: #1E3A5F; border-radius: 3px; }
 
-@keyframes pageIn    { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-@keyframes toastIn   { from { opacity:0; transform:translateX(60px); } to { opacity:1; transform:translateX(0); } }
-@keyframes shimmer   { from { background-position: -200% 0; } to { background-position: 200% 0; } }
-@keyframes progressW { from { width:0%; } to { width:85%; } }
-@keyframes pulse     { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.4)} }
-@keyframes spin      { to { transform: rotate(360deg); } }
+@keyframes pageIn  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes toastIn { from{opacity:0;transform:translateX(60px)} to{opacity:1;transform:translateX(0)} }
+@keyframes shimmer { from{background-position:-200% 0} to{background-position:200% 0} }
+@keyframes progressW { from{width:0%} to{width:85%} }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.4)} }
+@keyframes spin  { to{transform:rotate(360deg)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 
 .page-wrap  { animation: pageIn 0.3s ease forwards; }
 .toast-item { animation: toastIn 0.25s ease forwards; }
+.fade-up    { animation: fadeUp 0.4s ease forwards; }
 
 .skeleton {
   background: linear-gradient(90deg, var(--card) 25%, rgba(255,255,255,.06) 50%, var(--card) 75%);
@@ -70,8 +75,13 @@ body {
 }
 
 .progress-bar {
-  position: fixed; top:0; left:0; right:0; height:2.5px; z-index:9999;
+  position:fixed; top:0; left:0; right:0; height:2.5px; z-index:9999;
   background: linear-gradient(90deg,#028090,#02C39A);
   animation: progressW 1.5s ease forwards;
   border-radius: 0 2px 2px 0;
+}
+
+.dot {
+  width:7px; height:7px; border-radius:50%;
+  background:#02C39A; animation:pulse 2s infinite; display:inline-block;
 }
