@@ -27,9 +27,9 @@ export default function Onboarding() {
     localStorage.setItem("digdaya_step","done");
     try {
       const usr=JSON.parse(localStorage.getItem("digdaya_user")||"{}");
-      const res=await fetch("${process.env.NEXT_PUBLIC_API_URL}/api/v1/transactions",{
+      const res=await fetch("https://kortney-hamulate-annamarie.ngrok-free.dev/api/v1/transactions",{
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json","ngrok-skip-browser-warning":"true"},
         body:JSON.stringify({
           entityId:usr.id||usr.email||"anon",
           transactionType:"Cashflow",
