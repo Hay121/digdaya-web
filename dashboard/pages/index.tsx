@@ -30,6 +30,10 @@ export default function Landing() {
     if(form.password.length<6) return setError(lang==="id"?"Password minimal 6 karakter":"Password must be at least 6 characters");
     setLoading(true);
     await new Promise(r=>setTimeout(r,1200));
+    // Clear semua data sesi lama — mulai dari nol
+    const existingDb = localStorage.getItem("digdaya_users_db");
+    localStorage.clear();
+    if(existingDb) localStorage.setItem("digdaya_users_db", existingDb);
     const db = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
     if(db.find((u:any)=>u.email===form.email)){ setLoading(false); return setError(lang==="id"?"Email sudah terdaftar. Silakan login.":"Email already registered."); }
     const newUser = {name:form.name,email:form.email,phone:form.phone,id:"USR-"+Date.now(),password:btoa(unescape(encodeURIComponent(form.password)))};
@@ -50,11 +54,19 @@ export default function Landing() {
     const db    = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
     const found = db.find((u:any)=>u.email===form.email&&(u.password===btoa(unescape(encodeURIComponent(form.password)))||u.password===btoa(form.password)));
     if(!found){ setLoading(false); return setError(lang==="id"?"Email atau password salah":"Wrong email or password"); }
+    // Restore sesi terakhir akun ini
+    const sessionKey = "digdaya_session_"+found.id;
+    const lastSession = localStorage.getItem(sessionKey);
+    if(lastSession){
+      const session = JSON.parse(lastSession);
+      // Restore semua data sesi
+      Object.keys(session).forEach(k=>localStorage.setItem(k, session[k]));
+    }
     localStorage.setItem("digdaya_user", JSON.stringify(found));
     setLoading(false);
-    const step       = localStorage.getItem("digdaya_step");
     const loanStatus = localStorage.getItem("digdaya_loan_status");
     const score      = localStorage.getItem("digdaya_score");
+    const step       = localStorage.getItem("digdaya_step");
     if(loanStatus==="approved") { router.push("/angsuran"); return; }
     if(step==="done"&&score)    { router.push("/dashboard"); return; }
     if(step==="onboarding")     { router.push("/onboarding"); return; }

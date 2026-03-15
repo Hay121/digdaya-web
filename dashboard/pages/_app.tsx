@@ -71,6 +71,30 @@ export default function App({ Component, pageProps }: AppProps) {
     });
   },[]);
 
+  // Auto-save session setiap kali halaman berubah
+  useEffect(()=>{
+    const saveSession = () => {
+      const user = localStorage.getItem("digdaya_user");
+      if(!user) return;
+      try {
+        const { id } = JSON.parse(user);
+        if(!id) return;
+        const SESSION_KEYS = [
+          "digdaya_step","digdaya_score","digdaya_umkm_data",
+          "digdaya_loan_status","digdaya_loan_amount","digdaya_tenor",
+          "digdaya_tx_sig","digdaya_tx_hash","digdaya_tx_explorer",
+          "digdaya_masked_entity","digdaya_disburse_sig","digdaya_disburse_explorer",
+          "digdaya_approved_date","digdaya_paid_installments","digdaya_theme","digdaya_lang",
+        ];
+        const session: Record<string,string> = {};
+        SESSION_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v) session[k]=v; });
+        localStorage.setItem("digdaya_session_"+id, JSON.stringify(session));
+      } catch(e){}
+    };
+    router.events.on("routeChangeComplete", saveSession);
+    return ()=>router.events.off("routeChangeComplete", saveSession);
+  },[router]);
+
   const setLang = useCallback((l:Lang)=>{
     setLangState(l);
     localStorage.setItem("digdaya_lang", l);
