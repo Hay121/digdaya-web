@@ -368,7 +368,6 @@ export default function Onboarding() {
                     [lang==="id"?"Lokasi":"Location",[form.villageName,form.districtName,form.cityName,form.provinceName].filter(Boolean).join(", ")||"—"],
                     [lang==="id"?"Pendapatan / Bulan":"Revenue / Month",form.monthlyRevenue?`Rp ${parseInt(form.monthlyRevenue).toLocaleString("id-ID")}`:"—"],
                     [lang==="id"?"Pengeluaran / Bulan":"Expenses / Month",form.monthlyExpense?`Rp ${parseInt(form.monthlyExpense).toLocaleString("id-ID")}`:"—"],
-                    [lang==="id"?"Nominal Pinjaman":"Loan Amount",form.loanAmount?`Rp ${parseInt(form.loanAmount).toLocaleString("id-ID")}`:"—"],
                     [lang==="id"?"Tujuan Dana":"Purpose",form.loanPurpose||"—"],
                     [lang==="id"?"Bayar Tepat Waktu":"On-Time Payment",form.onTimePayment?`${form.onTimePayment}%`:"—"],
                   ].map(([k,v],i)=>(

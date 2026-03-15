@@ -32,7 +32,7 @@ export default function Landing() {
     await new Promise(r=>setTimeout(r,1200));
     const db = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
     if(db.find((u:any)=>u.email===form.email)){ setLoading(false); return setError(lang==="id"?"Email sudah terdaftar. Silakan login.":"Email already registered."); }
-    const newUser = {name:form.name,email:form.email,phone:form.phone,id:"USR-"+Date.now(),password:btoa(form.password)};
+    const newUser = {name:form.name,email:form.email,phone:form.phone,id:"USR-"+Date.now(),password:btoa(unescape(encodeURIComponent(form.password)))};
     db.push(newUser);
     localStorage.setItem("digdaya_users_db", JSON.stringify(db));
     localStorage.setItem("digdaya_user", JSON.stringify(newUser));
@@ -48,7 +48,7 @@ export default function Landing() {
     setLoading(true);
     await new Promise(r=>setTimeout(r,900));
     const db    = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
-    const found = db.find((u:any)=>u.email===form.email&&u.password===btoa(form.password));
+    const found = db.find((u:any)=>u.email===form.email&&(u.password===btoa(unescape(encodeURIComponent(form.password)))||u.password===btoa(form.password)));
     if(!found){ setLoading(false); return setError(lang==="id"?"Email atau password salah":"Wrong email or password"); }
     localStorage.setItem("digdaya_user", JSON.stringify(found));
     setLoading(false);
