@@ -458,6 +458,13 @@ export default function Onboarding() {
                     <span style={{background:"rgba(239,68,68,.1)",color:"#EF4444",fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,letterSpacing:.5,marginLeft:6}}>{lang==="id"?"WAJIB":"REQUIRED"}</span>
                   </div>
                   <div style={{fontSize:11,color:"var(--text3)",marginBottom:10}}>{lang==="id"?"8–16 digit. Hanya 4 digit terakhir yang ditampilkan, sisanya di-mask.":"8–16 digits. Only last 4 digits shown, rest masked."}</div>
+                  <div style={{marginBottom:10}}>
+                    <label style={{fontSize:11,color:"var(--text3)",display:"block",marginBottom:5,fontWeight:500,letterSpacing:.4,textTransform:"uppercase"}}>{lang==="id"?"Nama Bank":"Bank Name"}</label>
+                    <select className="inp" value={form.bankName||""} onChange={e=>u("bankName",e.target.value)}>
+                      <option value="">{lang==="id"?"Pilih bank":"Select bank"}</option>
+                      {["BCA — Bank Central Asia","BRI — Bank Rakyat Indonesia","BNI — Bank Negara Indonesia","Mandiri — Bank Mandiri","BSI — Bank Syariah Indonesia","CIMB Niaga","Danamon","Permata Bank","BTN — Bank Tabungan Negara","BPD Jawa Tengah","BPD Jawa Barat (BJB)","BPD Jawa Timur","Bank Muamalat","Bank Mega","OCBC NISP","Maybank Indonesia","Bank Bukopin","Allo Bank","Sea Bank","Jago Bank","Lainnya"].map(b=><option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
                   <div style={{position:"relative"}}>
                     <input className="inp"
                       placeholder={lang==="id"?"Nomor rekening aktif":"Active account number"}
