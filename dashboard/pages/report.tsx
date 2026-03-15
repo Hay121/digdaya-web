@@ -43,7 +43,7 @@ export default function Report() {
     const parsed = JSON.parse(d);
     setData(parsed);
     setScore(parseInt(s));
-    setLoanInput(parsed.loanAmount||"");
+    setLoanInput(localStorage.getItem('digdaya_loan_amount')||'');
     setLoanStatus(localStorage.getItem("digdaya_loan_status")||"");
     setTxSig(localStorage.getItem("digdaya_tx_sig")||"");
     setTxExplorer(localStorage.getItem("digdaya_tx_explorer")||"");

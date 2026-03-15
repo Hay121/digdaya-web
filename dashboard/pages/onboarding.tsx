@@ -267,7 +267,7 @@ export default function Onboarding() {
                   </div>
                   <div className="g2">
                     <div><label>{lang==="id"?"Cicilan / Hutang Aktif":"Active Debt/Installment"}</label><input className="inp" placeholder="Rp 0" value={fmtRp(form.existingDebt)} onChange={e=>u("existingDebt",parseRp(e.target.value))}/><div style={{fontSize:11,color:"var(--text5)",marginTop:4}}>{lang==="id"?"Isi Rp 0 jika tidak ada":"Enter Rp 0 if none"}</div></div>
-                    <div><label>{lang==="id"?"Nominal Pinjaman Diinginkan":"Desired Loan Amount"}</label><input className="inp" placeholder="Rp 0" value={fmtRp(form.loanAmount)} onChange={e=>u("loanAmount",parseRp(e.target.value))}/></div>
+                    
                   </div>
                   <div><label>{lang==="id"?"Tujuan Penggunaan Dana":"Purpose of Funds"}</label>
                     <select className="inp" value={form.loanPurpose} onChange={e=>u("loanPurpose",e.target.value)}>
