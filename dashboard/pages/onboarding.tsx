@@ -93,6 +93,7 @@ export default function Onboarding() {
     hasNIB:"yes",hasSKDU:"no",hasRekening:"yes",selfDeclaration:false,
     nikInput:"",nibInput:"",rekeningInput:"",
     nikHash:"",nibHash:"",rekeningLast4:"",
+    bankName:"",
   });
   const [nikError, setNikError] = useState("");
   const [nibError, setNibError] = useState("");
