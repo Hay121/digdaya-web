@@ -59,7 +59,8 @@ export default function Report() {
   const sc = score>=740?"#02C39A":score>=670?"#028090":score>=580?"#F4A261":"#EF4444";
   const sl = score>=740?"Excellent":score>=670?"Good":score>=580?"Fair":"Poor";
   const maxLoan = score>=740?150000000:score>=670?75000000:score>=580?25000000:score>=520?10000000:0;
-  const loan    = Math.min(parseInt(parseRp(loanInput)||"0"), maxLoan);
+  const loanRaw  = parseInt(parseRp(loanInput)||"0");
+  const loan     = loanRaw;
   const tenorObj = TENOR_OPTIONS.find(t=>t.months===tenor);
   const rate     = tenorObj?tenorObj.rate:0;
   const monthly  = (tenor&&loan>0)?Math.round(loan*(rate/100+1/tenor)):0;
