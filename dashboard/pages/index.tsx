@@ -52,7 +52,7 @@ export default function Landing() {
     setLoading(true);
     await new Promise(r=>setTimeout(r,900));
     const db    = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
-    const found = db.find((u:any)=>u.email===form.email&&(u.password===form.password||u.password===btoa(form.password)||u.password===btoa(unescape(encodeURIComponent(form.password)))));
+    const found = db.find((u:any)=>u.email===form.email&&(u.password===form.password||u.password===form.password||u.password===btoa(form.password)||u.password===btoa(unescape(encodeURIComponent(form.password)))||u.password===btoa(unescape(encodeURIComponent(form.password)))));
     if(!found){ setLoading(false); return setError(lang==="id"?"Email atau password salah":"Wrong email or password"); }
     // Restore sesi terakhir akun ini
     const sessionKey = "digdaya_session_"+found.id;
