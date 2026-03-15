@@ -61,26 +61,14 @@ export default function Dashboard() {
       `}</style>
       <div style={{minHeight:"100vh",background:"#060E1C",position:"relative"}}>
         <div style={{position:"fixed",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(rgba(2,128,144,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(2,128,144,.025) 1px,transparent 1px)",backgroundSize:"48px 48px"}}/>
-        <nav style={{position:"sticky",top:0,zIndex:100,background:"rgba(6,14,28,.94)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,.05)",padding:"0 24px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{display:"flex",alignItems:"center",gap:9}}>
-            <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15}}>D</div>
-            <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15,letterSpacing:-.3}}>DIGDAYA</span>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:12,color:"#475569"}}>Halo, <strong style={{color:"#94A3B8"}}>{user.name}</strong></span>
-            <div style={{width:1,height:16,background:"rgba(255,255,255,.08)"}}/>
-            <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.15)",borderRadius:20,padding:"4px 11px",fontSize:10}}>
-              <span className="dot"/><span style={{color:"#02C39A",fontWeight:600,letterSpacing:.5}}>Live</span>
-            </div>
-            {score>0&&<button className="nbtn p" onClick={()=>router.push("/report")}>Laporan & Pencairan</button>}
-            {!score&&<button className="nbtn p" onClick={()=>router.push("/onboarding")}>Ajukan Kredit</button>}
-            <button className="nbtn" onClick={()=>router.push("/admin")}>Panel Lender</button>
-            <button className="nbtn" onClick={()=>router.push("/history")}>Riwayat TX</button>
-            <button className="nbtn" onClick={()=>router.push("/profile")}>Profil</button>
-            
-            <button className="nbtn" onClick={()=>{localStorage.clear();router.push("/")}}>Keluar</button>
-          </div>
-        </nav>
+        <NavBar rightItems={
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {score>0&&<button className="nbtn p" onClick={()=>router.push("/report")}>{lang==="id"?"Laporan & Kredit":"Report & Credit"}</button>}
+          <button className="nbtn" onClick={()=>router.push("/history")}>{lang==="id"?"Riwayat TX":"TX History"}</button>
+          <button className="nbtn" onClick={()=>router.push("/profile")}>{lang==="id"?"Profil":"Profile"}</button>
+          <button className="nbtn" onClick={()=>{localStorage.clear();router.push("/")}}>{lang==="id"?"Keluar":"Logout"}</button>
+        </div>
+      }/>
 
         <main style={{position:"relative",zIndex:1,padding:"22px 24px",maxWidth:1260,margin:"0 auto"}}>
           <div style={{marginBottom:20}}>
