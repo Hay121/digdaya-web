@@ -80,7 +80,7 @@ export default function Dashboard() {
         <main style={{position:"relative",zIndex:1,padding:"22px 24px",maxWidth:1260,margin:"0 auto"}}>
           <div style={{marginBottom:20}}>
             <h1 style={{fontFamily:"var(--font-head)",fontSize:21,fontWeight:800,marginBottom:3,letterSpacing:-.4}}>{umkm?.bizName||"Dashboard UMKM"}</h1>
-            <p style={{color:"var(--text5)",fontSize:12}}>{umkm?.bizType||"Belum ada data usaha"}{umkm?.city?` · ${umkm.city}`:""}{umkm?.province?`, ${umkm.province}`:""}</p>
+            <p style={{color:"var(--text5)",fontSize:12}}>{umkm?.bizType||"Belum ada data usaha"}{umkm?.cityName||umkm?.city?` · ${umkm?.cityName||umkm?.city}`:""}{umkm?.provinceName||umkm?.province?`, ${umkm?.provinceName||umkm?.province}`:""}</p>
           </div>
 
           {loanStatus==="approved"&&(
@@ -119,7 +119,7 @@ export default function Dashboard() {
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
             {[
               {l:"Credit Score",v:score>0?score.toString():"—",s:score>0?sl:"Belum dianalisis",c:score>0?sc:"var(--text5)",i:"◎"},
-              {l:lang==="id"?"Pengajuan Kredit":"Credit Application",v:loanAmount>0?`Rp ${(loanAmount/1e6).toFixed(0)}jt`:"—",s:loanAmount>0&&loanTenor>0?`Tenor ${loanTenor} bulan`:(umkm?.loanPurpose||"Belum diisi"),c:"#028090",i:"◈"},
+              {l:lang==="id"?"Pengajuan Kredit":"Credit Application",v:loanAmount>0?`Rp ${loanAmount.toLocaleString("id-ID")}`:"—",s:loanAmount>0&&loanTenor>0?(lang==="id"?`Tenor ${loanTenor} bulan`:`${loanTenor} month tenor`):(umkm?.loanPurpose||(lang==="id"?"Belum diisi":"Not filled")),c:"#028090",i:"◈"},
               {l:"Total TX Tercatat",v:liveCount.toLocaleString("id-ID"),s:"Verified on-chain",c:"#02C39A",i:"◐"},
               {l:"Status Pengajuan",v:loanStatus==="approved"?"Disetujui":loanStatus==="pending"?"Menunggu Review":loanStatus==="rejected"?"Ditolak":score>0?"Belum Diajukan":"Pending",s:loanStatus==="approved"?"Dana siap dicairkan":loanStatus==="pending"?"Sedang ditinjau lender":loanStatus==="rejected"?"Coba lagi bulan depan":"Ajukan kredit sekarang",c:loanStatus==="approved"?"#02C39A":loanStatus==="pending"?"#F4A261":loanStatus==="rejected"?"#EF4444":"#028090",i:"◉"},
             ].map((s,i)=>(

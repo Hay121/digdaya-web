@@ -30,7 +30,7 @@ export default function Angsuran() {
 
   if(!mounted||!data) return null;
 
-  const loan   = parseInt(data.loanAmount||"0");
+  const loan   = parseInt(localStorage.getItem("digdaya_loan_amount")||data.loanAmount||'0');
   const tenor  = parseInt(localStorage.getItem("digdaya_tenor")||"12");
   const rate   = tenor===6?2.2:tenor===12?1.8:tenor===24?1.4:1.2;
   const monthly = Math.round(loan*(rate/100+1/tenor));

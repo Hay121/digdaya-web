@@ -323,8 +323,8 @@ export default function Report() {
                     </div>
                   )}
                   {!submitted?(
-                    <button disabled={!tenor||!loan||loan>maxLoan} onClick={()=>setShowModal(true)} style={{width:"100%",background:tenor&&loan&&loan<=maxLoan?"linear-gradient(135deg,#02C39A,#028090)":"var(--card)",border:tenor&&loan&&loan<=maxLoan?"none":"1px solid var(--border)",borderRadius:9,color:tenor&&loan&&loan<=maxLoan?"#fff":"var(--text4)",padding:"12px",fontSize:13,fontWeight:600,cursor:tenor&&loan&&loan<=maxLoan?"pointer":"not-allowed",fontFamily:"var(--font)",transition:"all .2s"}}>
-                      {!loan?(lang==="id"?"Masukkan nominal pinjaman":"Enter loan amount"):loan>maxLoan?(lang==="id"?"Nominal melebihi plafon":"Exceeds limit"):!tenor?(lang==="id"?"Pilih tenor terlebih dahulu":"Choose tenor first"):(lang==="id"?"Kirim Pengajuan ke Lender":"Submit to Lender")}
+                    <button disabled={!tenor||!loan||loan>maxLoan||loan<=0} onClick={()=>setShowModal(true)} style={{width:"100%",background:tenor&&loan&&loan<=maxLoan?"linear-gradient(135deg,#02C39A,#028090)":"var(--card)",border:tenor&&loan&&loan<=maxLoan?"none":"1px solid var(--border)",borderRadius:9,color:tenor&&loan&&loan<=maxLoan?"#fff":"var(--text4)",padding:"12px",fontSize:13,fontWeight:600,cursor:tenor&&loan&&loan<=maxLoan?"pointer":"not-allowed",fontFamily:"var(--font)",transition:"all .2s"}}>
+                      {!loan?(lang==="id"?"Masukkan nominal pinjaman":"Enter loan amount"):loan>maxLoan?(lang==="id"?"⚠ Nominal melebihi plafon — kurangi jumlahnya":"⚠ Amount exceeds limit — reduce it"):!tenor?(lang==="id"?"Pilih tenor terlebih dahulu":"Choose tenor first"):(lang==="id"?"Kirim Pengajuan ke Lender":"Submit to Lender")}
                     </button>
                   ):isApproved?(
                     <button onClick={()=>router.push("/angsuran")} style={{width:"100%",background:"linear-gradient(135deg,#02C39A,#028090)",border:"none",borderRadius:9,color:"#fff",padding:"12px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>
