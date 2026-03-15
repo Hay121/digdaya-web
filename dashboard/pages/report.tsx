@@ -276,8 +276,16 @@ export default function Report() {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
                     <div>
                       <div style={{fontSize:11,color:"var(--text3)",marginBottom:5,fontWeight:500}}>{lang==="id"?"Nominal Pinjaman":"Loan Amount"}</div>
-                      <input className="inp" placeholder="Rp 0" value={fmtRp(loanInput)} onChange={e=>setLoanInput(parseRp(e.target.value))} disabled={submitted}/>
-                      <div style={{fontSize:10,color:"var(--text4)",marginTop:3}}>{lang==="id"?"Maks":"Max"}. Rp {maxLoan.toLocaleString("id-ID")}</div>
+                <input className="inp" placeholder="Rp 0" value={fmtRp(loanInput)}
+                  onChange={e=>{setLoanInput(parseRp(e.target.value));localStorage.setItem("digdaya_loan_amount",parseRp(e.target.value));}}
+                  disabled={submitted}
+                  style={{borderColor:loan>maxLoan&&loan>0?"#EF4444":loan>0&&loan<=maxLoan?"#02C39A":"var(--border)",transition:"border-color .2s"}}
+                />
+                {loan>maxLoan&&loan>0?(
+                  <div style={{fontSize:11,color:"#EF4444",marginTop:4,fontWeight:600}}>⚠ {lang==="id"?"Melebihi plafon! Kurangi nominal Anda":"Exceeds limit! Reduce amount"} (max Rp {maxLoan.toLocaleString("id-ID")})</div>
+                ):(
+                  <div style={{fontSize:10,color:loan>0&&loan<=maxLoan?"#02C39A":"var(--text4)",marginTop:3}}>{loan>0&&loan<=maxLoan?"✓ ":""}{lang==="id"?"Maks":"Max"}. Rp {maxLoan.toLocaleString("id-ID")}</div>
+                )}
                     </div>
                     <div>
                       <div style={{fontSize:11,color:"var(--text3)",marginBottom:5,fontWeight:500}}>{lang==="id"?"Plafon Maksimum":"Maximum Limit"}</div>
