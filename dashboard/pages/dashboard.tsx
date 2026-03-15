@@ -168,7 +168,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div style={{width:"100%"}}>
-                    {[["Nominal",loanAmount>0?"Rp "+loanAmount.toLocaleString("id-ID"):"—"],["Tujuan",umkm?.loanPurpose||"—"],["Wilayah",umkm?.province||"—"]].map(([k,v],i)=>(
+                    {[["Nominal",loanAmount>0?"Rp "+loanAmount.toLocaleString("id-ID"):"—"],["Tujuan",umkm?.loanPurpose||"—"],[lang==="id"?"Tujuan Dana":"Loan Purpose", umkm?.loanPurpose||"—"],i)=>(
                       <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid var(--border2)"}}>
                         <span style={{fontSize:11,color:"var(--text5)"}}>{k}</span>
                         <span style={{fontSize:11,fontWeight:500,color:"var(--text2)"}}>{v}</span>
