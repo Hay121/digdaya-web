@@ -119,7 +119,7 @@ export default function Dashboard() {
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
             {[
               {l:"Credit Score",v:score>0?score.toString():"—",s:score>0?sl:"Belum dianalisis",c:score>0?sc:"var(--text5)",i:"◎"},
-              {l:lang==="id"?"Pengajuan Kredit":"Credit Application",v:loanAmount>0?`Rp ${loanAmount.toLocaleString("id-ID")}`:"—",s:loanAmount>0&&loanTenor>0?(lang==="id"?`Tenor ${loanTenor} bulan`:`${loanTenor} month tenor`):(umkm?.loanPurpose||(lang==="id"?"Belum diisi":"Not filled")),c:"#028090",i:"◈"},
+              {l:lang==="id"?"Pengajuan Kredit":"Credit Application",v:loanAmount>0?(loanAmount>=1000000?`Rp ${(loanAmount/1000000).toFixed(1).replace(".0","")} jt`:`Rp ${loanAmount.toLocaleString("id-ID")}`):"—",s:loanAmount>0?(loanTenor>0?(lang==="id"?`Tenor ${loanTenor} bln · ${umkm?.loanPurpose||""}`:`${loanTenor}mo tenor`):(umkm?.loanPurpose||"")):(lang==="id"?"Belum diajukan":"Not applied"),c:"#028090",i:"◈"},
               {l:"Total TX Tercatat",v:liveCount.toLocaleString("id-ID"),s:"Verified on-chain",c:"#02C39A",i:"◐"},
               {l:"Status Pengajuan",v:loanStatus==="approved"?"Disetujui":loanStatus==="pending"?"Menunggu Review":loanStatus==="rejected"?"Ditolak":score>0?"Belum Diajukan":"Pending",s:loanStatus==="approved"?"Dana siap dicairkan":loanStatus==="pending"?"Sedang ditinjau lender":loanStatus==="rejected"?"Coba lagi bulan depan":"Ajukan kredit sekarang",c:loanStatus==="approved"?"#02C39A":loanStatus==="pending"?"#F4A261":loanStatus==="rejected"?"#EF4444":"#028090",i:"◉"},
             ].map((s,i)=>(
@@ -168,7 +168,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div style={{width:"100%"}}>
-                    {[["Nominal","Rp "+loan.toLocaleString("id-ID")],["Tujuan",umkm?.loanPurpose||"—"],["Wilayah",umkm?.province||"—"]].map(([k,v],i)=>(
+                    {[["Nominal",loanAmount>0?"Rp "+loanAmount.toLocaleString("id-ID"):"—"],["Tujuan",umkm?.loanPurpose||"—"],["Wilayah",umkm?.province||"—"]].map(([k,v],i)=>(
                       <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid var(--border2)"}}>
                         <span style={{fontSize:11,color:"var(--text5)"}}>{k}</span>
                         <span style={{fontSize:11,fontWeight:500,color:"var(--text2)"}}>{v}</span>

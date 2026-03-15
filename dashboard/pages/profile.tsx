@@ -29,7 +29,7 @@ export default function Profile() {
     if(d){
       const pd = JSON.parse(d);
       setUmkm(pd);
-      setForm(f=>({...f, bizName:pd.bizName||"", bizType:pd.bizType||"", city:pd.city||"", province:pd.province||""}));
+      setForm(f=>({...f, bizName:pd.bizName||"", bizType:pd.bizType||"", city:pd.cityName||pd.city||'', province:pd.provinceName||pd.province||''}));
     }
     if(s) setScore(parseInt(s));
   },[]);

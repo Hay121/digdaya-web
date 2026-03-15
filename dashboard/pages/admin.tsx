@@ -32,8 +32,8 @@ export default function Admin() {
       const d = JSON.parse(umkm);
       const realApp = {
         id:"UM-LIVE", name:d.bizName||u.name, type:d.bizType||"UMKM",
-        city:`${d.city||""}, ${d.province||""}`, score:parseInt(score),
-        loan:parseInt(d.loanAmount||"0"), purpose:d.loanPurpose||"—",
+        city:`${d.cityName||d.city||""}, ${d.provinceName||d.province||""}`, score:parseInt(score),
+        loan:parseInt(localStorage.getItem("digdaya_loan_amount")||d.loanAmount||"0"), purpose:d.loanPurpose||"—",
         status:"pending", date:new Date().toISOString().split("T")[0],
         sig, explorer, isLive:true,
       };
