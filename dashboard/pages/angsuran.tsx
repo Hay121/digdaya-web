@@ -66,12 +66,12 @@ export default function Angsuran() {
         .card{background:var(--card);border:1px solid var(--border);border-radius:14px}
         .nbtn{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text3);padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--font);transition:all .2s}
         .nbtn:hover{color:var(--text2)}
-        .row:hover{background:rgba(255,255,255,.02)}
+        .row:hover{background:var(--card)}
         .row{transition:background .15s}
       `}</style>
       <div style={{minHeight:"100vh",background:"var(--bg)"}}>
         <div style={{position:"fixed",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(var(--border2) 1px,transparent 1px),linear-gradient(90deg,var(--border2) 1px,transparent 1px)",backgroundSize:"48px 48px"}}/>
-        <nav style={{position:"sticky",top:0,zIndex:100,background:"rgba(6,14,28,.95)",backdropFilter:"blur(20px)",borderBottom:"1px solid var(--border2)",padding:"0 28px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <nav style={{position:"sticky",top:0,zIndex:100,background:"var(--bg)",backdropFilter:"blur(20px)",borderBottom:"1px solid var(--border2)",padding:"0 28px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:9}}>
             <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-head)",fontWeight:800,fontSize:15,color:"#fff"}}>D</div>
             <span style={{fontFamily:"var(--font-head)",fontWeight:800,fontSize:15,letterSpacing:-.3}}>DIGDAYA</span>

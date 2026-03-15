@@ -68,24 +68,24 @@ export default function Admin() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#060E1C;color:#F1F5F9;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
+        body{background:var(--bg);color:var(--text1);font-family:var(--font);-webkit-font-smoothing:antialiased}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#1E3A5F;border-radius:3px}
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         .fade-up{animation:fadeUp .3s ease forwards}
-        .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px}
+        .card{background:var(--card);border:1px solid var(--border);border-radius:14px}
         .row{transition:background .15s;cursor:pointer}
-        .row:hover{background:rgba(255,255,255,.03)}
+        .row:hover{background:var(--card)}
         .nbtn{background:r5,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#64748B;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s}
         .nbtn:hover{background:rgba(255,255,255,.08);color:#94A3B8}
         .fbtn{padding:6px 14px;border-radius:7px;border:1px solid rgba(255,255,255,.08);background:transparent;color:#475569;font-size:12px;font-weight:500;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s}
         .fbtn.active{border-color:#028090;background:rgba(2,128,144,.1);color:#02C39A}
       `}</style>
-      <div style={{minHeight:"100vh",background:"#060E1C",position:"relative"}}>
+      <div style={{minHeight:"100vh",background:"var(--bg)",position:"relative"}}>
         <div style={{position:"fixed",inset:0,pointerEvents:"none",backgroundImage:"linear-gradient(rgba(2,128,144,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(2,128,144,.025) 1px,transparent 1px)",backgroundSize:"48px 48px"}}/>
-        <nav style={{position:"sticky",top:0,zIndex:100,background:"rgba(6,14,28,.95)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,.06)",padding:"0 28px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <nav style={{position:"sticky",top:0,zIndex:100,background:"var(--bg)",backdropFilter:"blur(20px)",borderBottom:"1px solid var(--border)",padding:"0 28px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:9}}>
-            <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15}}>D</div>
-            <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15,letterSpacing:-.3}}>DIGDAYA</span>
+            <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-head)",fontWeight:800,fontSize:15}}>D</div>
+            <span style={{fontFamily:"var(--font-head)",fontWeight:800,fontSize:15,letterSpacing:-.3}}>DIGDAYA</span>
             <span style={{fontSize:10,color:"#028090",background:"rgba(2,128,144,.1)",border:"1px solid rgba(2,128,144,.2)",borderRadius:5,padding:"2px 8px",fontWeight:600,letterSpacing:1,textTransform:"uppercase",marginLeft:4}}>Lender Panel</span>
           </div>
           <div style={{display:"flex",gap:8}}>
@@ -95,8 +95,8 @@ export default function Admin() {
         </nav>
         <main style={{position:"relative",zIndex:1,padding:"24px 28px",maxWidth:1280,margin:"0 auto"}}>
           <div style={{marginBottom:22}}>
-            <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:3,letterSpacing:-.4}}>Panel Lender — Kelola Pengajuan UMKM</h1>
-            <p style={{color:"#334155",fontSize:12}}>Tinjau, verifikasi, dan setujui pengajuan kredit berbasis AI dan blockchain</p>
+            <h1 style={{fontFamily:"var(--font-head)",fontSize:22,fontWeight:800,marginBottom:3,letterSpacing:-.4}}>Panel Lender — Kelola Pengajuan UMKM</h1>
+            <p style={{color:"var(--text5)",fontSize:12}}>Tinjau, verifikasi, dan setujui pengajuan kredit berbasis AI dan blockchain</p>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
             {[
@@ -109,8 +109,8 @@ export default function Admin() {
                 <div style={{position:"absolute",top:0,left:0,right:0,height:1.5,background:`linear-gradient(90deg,transparent,${s.c}80,transparent)`}}/>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
-                    <div style={{fontSize:9,color:"#334155",letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontFamily:"'JetBrains Mono',monospace"}}>{s.l}</div>
-                    <div style={{fontSize:26,fontWeight:800,color:s.c,fontFamily:"'Syne',sans-serif",letterSpacing:-.5}}>{s.v}</div>
+                    <div style={{fontSize:9,color:"var(--text5)",letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontFamily:"var(--font-mono)"}}>{s.l}</div>
+                    <div style={{fontSize:26,fontWeight:800,color:s.c,fontFamily:"var(--font-head)",letterSpacing:-.5}}>{s.v}</div>
                   </div>
                   <div style={{fontSize:20,color:s.c,opacity:.4,fontFamily:"monospace"}}>{s.i}</div>
                 </div>
@@ -119,8 +119,8 @@ export default function Admin() {
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 380px",gap:16}}>
             <div className="card" style={{overflow:"hidden"}}>
-              <div style={{padding:"16px 20px",borderBottom:"1px solid rgba(255,255,255,.05)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:700,color:"#64748B",letterSpacing:1,textTransform:"uppercase"}}>Daftar Pengajuan</div>
+              <div style={{padding:"16px 20px",borderBottom:"1px solid var(--border2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontFamily:"var(--font-head)",fontSize:13,fontWeight:700,color:"var(--text3)",letterSpacing:1,textTransform:"uppercase"}}>Daftar Pengajuan</div>
                 <div style={{display:"flex",gap:6}}>
                   {["all","pending","review","approved","rejected"].map(f=>(
                     <button key={f} className={`fbtn${filter===f?" active":""}`} onClick={()=>setFilter(f)}>
@@ -131,38 +131,38 @@ export default function Admin() {
               </div>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
-                  <tr style={{borderBottom:"1px solid rgba(255,255,255,.05)"}}>
+                  <tr style={{borderBottom:"1px solid var(--border2)"}}>
                     {["ID","Nama Usaha","Skor","Nominal","Status","Aksi"].map(h=>(
-                      <th key={h} style={{textAlign:"left",padding:"10px 16px",color:"#1E293B",fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",fontSize:9,fontFamily:"'JetBrains Mono',monospace"}}>{h}</th>
+                      <th key={h} style={{textAlign:"left",padding:"10px 16px",color:"var(--text5)",fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",fontSize:9,fontFamily:"var(--font-mono)"}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(a=>(
-                    <tr key={a.id} className="row" onClick={()=>setSelected(a)} style={{borderBottom:"1px solid rgba(255,255,255,.03)",background:selected?.id===a.id?"rgba(2,128,144,.06)":"transparent"}}>
-                      <td style={{padding:"11px 16px",fontFamily:"'JetBrains Mono',monospace",color:"#334155",fontSize:10}}>
+                    <tr key={a.id} className="row" onClick={()=>setSelected(a)} style={{borderBottom:"1px solid var(--card)",background:selected?.id===a.id?"rgba(2,128,144,.06)":"transparent"}}>
+                      <td style={{padding:"11px 16px",fontFamily:"var(--font-mono)",color:"var(--text5)",fontSize:10}}>
                         {a.id}
                         {a.isLive&&<span style={{marginLeft:5,fontSize:8,color:"#02C39A",background:"rgba(2,195,154,.1)",borderRadius:4,padding:"1px 5px"}}>LIVE</span>}
                       </td>
                       <td style={{padding:"11px 16px"}}>
                         <div style={{fontWeight:600,fontSize:12,marginBottom:2}}>{a.name}</div>
-                        <div style={{fontSize:10,color:"#334155"}}>{a.city}</div>
+                        <div style={{fontSize:10,color:"var(--text5)"}}>{a.city}</div>
                       </td>
                       <td style={{padding:"11px 16px"}}>
-                        <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:a.score>=740?"#02C39A":a.score>=670?"#028090":a.score>=580?"#F4A261":"#EF4444"}}>{a.score}</span>
+                        <span style={{fontFamily:"var(--font-head)",fontWeight:800,fontSize:16,color:a.score>=740?"#02C39A":a.score>=670?"#028090":a.score>=580?"#F4A261":"#EF4444"}}>{a.score}</span>
                       </td>
-                      <td style={{padding:"11px 16px",fontWeight:600,color:"#94A3B8"}}>Rp {(a.loan/1e6).toFixed(0)}jt</td>
+                      <td style={{padding:"11px 16px",fontWeight:600,color:"var(--text2)"}}>Rp {(a.loan/1e6).toFixed(0)}jt</td>
                       <td style={{padding:"11px 16px"}}>
                         <span style={{background:SC[a.status]?.bg,color:SC[a.status]?.c,border:`1px solid ${SC[a.status]?.c}30`,borderRadius:6,padding:"3px 9px",fontSize:10,fontWeight:600}}>{SC[a.status]?.label}</span>
                       </td>
                       <td style={{padding:"11px 16px"}}>
                         {(a.status==="pending"||a.status==="review")?(
                           <div style={{display:"flex",gap:5}} onClick={e=>e.stopPropagation()}>
-                            <button onClick={()=>handleAction(a.id,"approved")} style={{background:"rgba(2,195,154,.1)",border:"1px solid rgba(2,195,154,.2)",borderRadius:6,color:"#02C39A",padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Setujui</button>
-                            <button onClick={()=>handleAction(a.id,"rejected")} style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:6,color:"#EF4444",padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Tolak</button>
+                            <button onClick={()=>handleAction(a.id,"approved")} style={{background:"rgba(2,195,154,.1)",border:"1px solid rgba(2,195,154,.2)",borderRadius:6,color:"#02C39A",padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>Setujui</button>
+                            <button onClick={()=>handleAction(a.id,"rejected")} style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:6,color:"#EF4444",padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>Tolak</button>
                           </div>
                         ):(
-                          <span style={{fontSize:10,color:"#1E293B"}}>—</span>
+                          <span style={{fontSize:10,color:"var(--text5)"}}>—</span>
                         )}
                       </td>
                     </tr>
@@ -173,13 +173,13 @@ export default function Admin() {
             <div>
               {selected?(
                 <div className="card fade-up" style={{padding:"20px"}}>
-                  <div style={{fontSize:9,color:"#334155",letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"'JetBrains Mono',monospace"}}>Detail Pengajuan</div>
-                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,marginBottom:3,letterSpacing:-.3}}>{selected.name}</div>
-                  <div style={{fontSize:12,color:"#334155",marginBottom:18}}>{selected.type} · {selected.city}</div>
-                  <div style={{width:"100%",height:4,background:"rgba(255,255,255,.04)",borderRadius:2,overflow:"hidden",marginBottom:6}}>
+                  <div style={{fontSize:9,color:"var(--text5)",letterSpacing:2,textTransform:"uppercase",marginBottom:14,fontFamily:"var(--font-mono)"}}>Detail Pengajuan</div>
+                  <div style={{fontFamily:"var(--font-head)",fontSize:18,fontWeight:800,marginBottom:3,letterSpacing:-.3}}>{selected.name}</div>
+                  <div style={{fontSize:12,color:"var(--text5)",marginBottom:18}}>{selected.type} · {selected.city}</div>
+                  <div style={{width:"100%",height:4,background:"var(--border2)",borderRadius:2,overflow:"hidden",marginBottom:6}}>
                     <div style={{height:"100%",width:`${((selected.score-300)/550)*100}%`,background:"linear-gradient(90deg,#EF4444,#F4A261,#02C39A)",borderRadius:2}}/>
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#334155",marginBottom:18}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text5)",marginBottom:18}}>
                     <span>300</span>
                     <span style={{color:selected.score>=740?"#02C39A":selected.score>=670?"#028090":"#F4A261",fontWeight:700,fontSize:13}}>Skor: {selected.score}</span>
                     <span>850</span>
@@ -191,23 +191,23 @@ export default function Admin() {
                       ["Tanggal",selected.date],
                       ["Status",SC[selected.status]?.label],
                     ].map(([k,v],i)=>(
-                      <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",background:"rgba(255,255,255,.02)",borderRadius:8}}>
-                        <span style={{fontSize:11,color:"#475569"}}>{k}</span>
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",background:"var(--card)",borderRadius:8}}>
+                        <span style={{fontSize:11,color:"var(--text4)"}}>{k}</span>
                         <span style={{fontSize:11,fontWeight:600,color:"#E2E8F0"}}>{v}</span>
                       </div>
                     ))}
                   </div>
                   {selected.explorer&&(
-                    <a href={selected.explorer} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:6,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.15)",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#02C39A",textDecoration:"none",marginBottom:12,fontFamily:"'JetBrains Mono',monospace"}}>
+                    <a href={selected.explorer} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:6,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.15)",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#02C39A",textDecoration:"none",marginBottom:12,fontFamily:"var(--font-mono)"}}>
                       ◈ Verifikasi di Solana Explorer ↗
                     </a>
                   )}
                   {(selected.status==="pending"||selected.status==="review")&&(
                     <div style={{display:"grid",gap:8}}>
-                      <button disabled={processing} onClick={()=>handleAction(selected.id,"approved")} style={{background:"linear-gradient(135deg,#02C39A,#028090)",border:"none",borderRadius:9,color:"#fff",padding:"12px",fontSize:13,fontWeight:600,cursor:processing?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif",opacity:processing?0.6:1}}>
+                      <button disabled={processing} onClick={()=>handleAction(selected.id,"approved")} style={{background:"linear-gradient(135deg,#02C39A,#028090)",border:"none",borderRadius:9,color:"#fff",padding:"12px",fontSize:13,fontWeight:600,cursor:processing?"not-allowed":"pointer",fontFamily:"var(--font)",opacity:processing?0.6:1}}>
                         {processing?"Memproses...":"✓ Setujui Pengajuan"}
                       </button>
-                      <button disabled={processing} onClick={()=>handleAction(selected.id,"rejected")} style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:9,color:"#EF4444",padding:"12px",fontSize:13,fontWeight:600,cursor:processing?"not-allowed":"pointer",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
+                      <button disabled={processing} onClick={()=>handleAction(selected.id,"rejected")} style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:9,color:"#EF4444",padding:"12px",fontSize:13,fontWeight:600,cursor:processing?"not-allowed":"pointer",fontFamily:"var(--font)"}}>
                         ✕ Tolak Pengajuan
                       </button>
                     </div>
@@ -215,14 +215,14 @@ export default function Admin() {
                 </div>
               ):(
                 <div className="card" style={{padding:"32px 20px",textAlign:"center"}}>
-                  <div style={{fontSize:32,color:"#1E293B",fontFamily:"monospace",marginBottom:10}}>◎</div>
-                  <div style={{fontSize:13,color:"#334155"}}>Pilih pengajuan untuk melihat detail</div>
+                  <div style={{fontSize:32,color:"var(--text5)",fontFamily:"monospace",marginBottom:10}}>◎</div>
+                  <div style={{fontSize:13,color:"var(--text5)"}}>Pilih pengajuan untuk melihat detail</div>
                 </div>
               )}
             </div>
           </div>
         </main>
-        <footer style={{borderTop:"1px solid rgba(255,255,255,.04)",padding:"12px 28px",display:"flex",justifyContent:"space-between",fontSize:9,color:"#1E293B",fontFamily:"'JetBrains Mono',monospace"}}>
+        <footer style={{borderTop:"1px solid var(--border2)",padding:"12px 28px",display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--text5)",fontFamily:"var(--font-mono)"}}>
           <span>© 2026 Digdaya · Lender Panel</span>
           <span>7L1FRY6iPwCYoppBWEdTzMh1EsyKwubQc1U1YXnTLUeE</span>
           <span>SNAP BI v2 · OJK Sandbox</span>

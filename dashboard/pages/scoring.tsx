@@ -53,7 +53,7 @@ export default function Scoring() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#060E1C;color:#F1F5F9;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+        body{background:var(--bg);color:var(--text1);font-family:var(--font);-webkit-font-smoothing:antialiased}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes reveal{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
@@ -61,63 +61,63 @@ export default function Scoring() {
         .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.08);border-top-color:#02C39A;border-radius:50%;animation:spin .7s linear infinite}
         .ring{animation:reveal .9s cubic-bezier(.34,1.56,.64,1) forwards,glow 2.5s ease 1s infinite}
         .fade-up{animation:fadeUp .5s ease forwards}
-        .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px}
+        .card{background:var(--card);border:1px solid var(--border);border-radius:14px}
         .btn{background:linear-gradient(135deg,#028090,#02C39A);border:none;border-radius:9px;color:#fff;padding:13px 28px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
         .btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(2,195,154,.3)}
-        .btn-ghost{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#64748B;padding:13px 22px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+        .btn-ghost{background:var(--border2);border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#64748B;padding:13px 22px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
         .btn-ghost:hover{background:rgba(255,255,255,.08);color:#94A3B8}
       `}</style>
-      <div style={{minHeight:"100vh",background:"#060E1C",position:"relative",overflow:"hidden"}}>
+      <div style={{minHeight:"100vh",background:"var(--bg)",position:"relative",overflow:"hidden"}}>
         <div style={{position:"fixed",left:"45%",top:"-5%",width:500,height:500,borderRadius:"50%",background:"#02C39A",filter:"blur(375px)",opacity:.06,pointerEvents:"none"}}/>
-        <nav style={{position:"relative",zIndex:10,padding:"0 40px",height:58,display:"flex",alignItems:"center",borderBottom:"1px solid rgba(255,255,255,.05)"}}>
-          <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15,marginRight:9}}>D</div>
-          <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15,letterSpacing:-.3}}>DIGDAYA</span>
+        <nav style={{position:"relative",zIndex:10,padding:"0 40px",height:58,display:"flex",alignItems:"center",borderBottom:"1px solid var(--border2)"}}>
+          <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-head)",fontWeight:800,fontSize:15,marginRight:9}}>D</div>
+          <span style={{fontFamily:"var(--font-head)",fontWeight:800,fontSize:15,letterSpacing:-.3}}>DIGDAYA</span>
         </nav>
         <div style={{position:"relative",zIndex:1,maxWidth:640,margin:"0 auto",padding:"56px 24px",display:"flex",flexDirection:"column",alignItems:"center"}}>
           {!done?(
             <div style={{width:"100%"}}>
               <div style={{textAlign:"center",marginBottom:44}}>
                 <div style={{width:56,height:56,borderRadius:16,background:"rgba(2,128,144,.15)",border:"1px solid rgba(2,128,144,.25)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:24}}>◎</div>
-                <h1 style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,marginBottom:8,letterSpacing:-.5}}>Analisis AI Sedang Berjalan</h1>
-                <p style={{color:"#475569",fontSize:13,lineHeight:1.6}}>Model kami membutuhkan 8–10 detik untuk memproses seluruh parameter.</p>
+                <h1 style={{fontFamily:"var(--font-head)",fontSize:26,fontWeight:800,marginBottom:8,letterSpacing:-.5}}>Analisis AI Sedang Berjalan</h1>
+                <p style={{color:"var(--text4)",fontSize:13,lineHeight:1.6}}>Model kami membutuhkan 8–10 detik untuk memproses seluruh parameter.</p>
               </div>
               <div className="card" style={{overflow:"hidden",marginBottom:16}}>
                 {AI_STEPS.map((s,i)=>{
                   const isDone=i<cur,isActive=i===cur;
                   return (
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"13px 20px",borderBottom:i<AI_STEPS.length-1?"1px solid rgba(255,255,255,.04)":"none",background:isActive?"rgba(2,128,144,.05)":"transparent",transition:"background .3s"}}>
-                      <div style={{width:30,height:30,borderRadius:"50%",background:isDone?"rgba(2,195,154,.15)":isActive?"rgba(2,128,144,.15)":"rgba(255,255,255,.04)",border:`1.5px solid ${isDone?"#02C39A":isActive?"#028090":"rgba(255,255,255,.08)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        {isDone?<span style={{color:"#02C39A",fontSize:12,fontWeight:700}}>✓</span>:isActive?<div className="spinner"/>:<span style={{color:"#1E293B",fontSize:11}}>{i+1}</span>}
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"13px 20px",borderBottom:i<AI_STEPS.length-1?"1px solid var(--border2)":"none",background:isActive?"rgba(2,128,144,.05)":"transparent",transition:"background .3s"}}>
+                      <div style={{width:30,height:30,borderRadius:"50%",background:isDone?"rgba(2,195,154,.15)":isActive?"rgba(2,128,144,.15)":"var(--border2)",border:`1.5px solid ${isDone?"#02C39A":isActive?"#028090":"rgba(255,255,255,.08)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        {isDone?<span style={{color:"#02C39A",fontSize:12,fontWeight:700}}>✓</span>:isActive?<div className="spinner"/>:<span style={{color:"var(--text5)",fontSize:11}}>{i+1}</span>}
                       </div>
                       <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:500,color:isActive?"#F1F5F9":isDone?"#475569":"#1E293B"}}>{s.label}</div>
-                        <div style={{fontSize:11,color:isActive?"#334155":"#0F172A",marginTop:2}}>{s.detail}</div>
+                        <div style={{fontSize:13,fontWeight:500,color:isActive?"var(--text1)":isDone?"var(--text4)":"var(--text5)"}}>{s.label}</div>
+                        <div style={{fontSize:11,color:isActive?"var(--text5)":"#0F172A",marginTop:2}}>{s.detail}</div>
                       </div>
-                      {isActive&&<div style={{fontSize:9,color:"#028090",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1.5,border:"1px solid rgba(2,128,144,.3)",borderRadius:4,padding:"2px 7px"}}>RUNNING</div>}
-                      {isDone&&<div style={{fontSize:9,color:"#02C39A",fontFamily:"'JetBrains Mono',monospace",letterSpacing:1}}>DONE</div>}
+                      {isActive&&<div style={{fontSize:9,color:"#028090",fontFamily:"var(--font-mono)",letterSpacing:1.5,border:"1px solid rgba(2,128,144,.3)",borderRadius:4,padding:"2px 7px"}}>RUNNING</div>}
+                      {isDone&&<div style={{fontSize:9,color:"#02C39A",fontFamily:"var(--font-mono)",letterSpacing:1}}>DONE</div>}
                     </div>
                   );
                 })}
               </div>
-              <div style={{background:"rgba(255,255,255,.02)",borderRadius:9,padding:"10px 16px",display:"flex",justifyContent:"space-between",fontSize:11}}>
-                <span style={{color:"#1E293B"}}>TX Hash {isRealTx?"(on-chain ✓)":"(pending)"}</span>
-                <span style={{color:"#334155",fontFamily:"'JetBrains Mono',monospace"}}>{(txHash||"generating...").slice(0,28)}...</span>
+              <div style={{background:"var(--card)",borderRadius:9,padding:"10px 16px",display:"flex",justifyContent:"space-between",fontSize:11}}>
+                <span style={{color:"var(--text5)"}}>TX Hash {isRealTx?"(on-chain ✓)":"(pending)"}</span>
+                <span style={{color:"var(--text5)",fontFamily:"var(--font-mono)"}}>{(txHash||"generating...").slice(0,28)}...</span>
               </div>
             </div>
           ):(
             <div className="fade-up" style={{width:"100%",textAlign:"center"}}>
               <div style={{marginBottom:36}}>
-                <div style={{fontSize:11,color:"#334155",letterSpacing:3,textTransform:"uppercase",marginBottom:20,fontFamily:"'JetBrains Mono',monospace"}}>Credit Score Result</div>
-                <div className="ring" style={{width:180,height:180,borderRadius:"50%",background:`conic-gradient(${sc} ${pct*3.6}deg,rgba(255,255,255,.04) 0deg)`,margin:"0 auto 28px",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <div style={{width:140,height:140,borderRadius:"50%",background:"#060E1C",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                    <div style={{fontSize:52,fontWeight:800,color:sc,fontFamily:"'Syne',sans-serif",lineHeight:1,letterSpacing:-2}}>{score}</div>
+                <div style={{fontSize:11,color:"var(--text5)",letterSpacing:3,textTransform:"uppercase",marginBottom:20,fontFamily:"var(--font-mono)"}}>Credit Score Result</div>
+                <div className="ring" style={{width:180,height:180,borderRadius:"50%",background:`conic-gradient(${sc} ${pct*3.6}deg,var(--border2) 0deg)`,margin:"0 auto 28px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <div style={{width:140,height:140,borderRadius:"50%",background:"var(--bg)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                    <div style={{fontSize:52,fontWeight:800,color:sc,fontFamily:"var(--font-head)",lineHeight:1,letterSpacing:-2}}>{score}</div>
                     <div style={{fontSize:10,color:sc,fontWeight:600,letterSpacing:3,marginTop:5,textTransform:"uppercase"}}>{sl}</div>
                   </div>
                 </div>
-                <h2 style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:10,letterSpacing:-.5}}>
+                <h2 style={{fontFamily:"var(--font-head)",fontSize:22,fontWeight:800,marginBottom:10,letterSpacing:-.5}}>
                   {score>=670?"Selamat — Anda Layak Kredit":score>=580?"Hampir — Perlu Sedikit Perbaikan":"Diperlukan Peningkatan Lebih Lanjut"}
                 </h2>
-                <p style={{color:"#475569",fontSize:13,lineHeight:1.7,maxWidth:420,margin:"0 auto 20px"}}>
+                <p style={{color:"var(--text4)",fontSize:13,lineHeight:1.7,maxWidth:420,margin:"0 auto 20px"}}>
                   {score>=670?"Profil kredit Anda masuk kategori baik. Laporan lengkap dan penawaran kredit telah disiapkan.":score>=580?"Profil kredit Anda cukup. Beberapa indikator dapat ditingkatkan.":"Lihat laporan untuk rekomendasi spesifik dari AI kami."}
                 </p>
               </div>
@@ -128,13 +128,13 @@ export default function Scoring() {
                   {l:"Blockchain",v:isRealTx?"On-chain ✓":"Simulated",c:isRealTx?"#02C39A":"#F4A261"},
                 ].map((item,i)=>(
                   <div key={i} className="card" style={{padding:"14px"}}>
-                    <div style={{fontSize:9,color:"#334155",marginBottom:5,textTransform:"uppercase",letterSpacing:1.5,fontFamily:"'JetBrains Mono',monospace"}}>{item.l}</div>
-                    <div style={{fontSize:20,fontWeight:700,color:item.c,fontFamily:"'Syne',sans-serif",letterSpacing:-.3}}>{item.v}</div>
+                    <div style={{fontSize:9,color:"var(--text5)",marginBottom:5,textTransform:"uppercase",letterSpacing:1.5,fontFamily:"var(--font-mono)"}}>{item.l}</div>
+                    <div style={{fontSize:20,fontWeight:700,color:item.c,fontFamily:"var(--font-head)",letterSpacing:-.3}}>{item.v}</div>
                   </div>
                 ))}
               </div>
               {isRealTx&&(
-                <a href={txExplorer} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.2)",borderRadius:9,padding:"10px 18px",fontSize:11,color:"#02C39A",fontFamily:"'JetBrains Mono',monospace",textDecoration:"none",marginBottom:16,letterSpacing:.3}}>
+                <a href={txExplorer} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.2)",borderRadius:9,padding:"10px 18px",fontSize:11,color:"#02C39A",fontFamily:"var(--font-mono)",textDecoration:"none",marginBottom:16,letterSpacing:.3}}>
                   ◈ Verifikasi Transaksi di Solana Explorer ↗
                 </a>
               )}
