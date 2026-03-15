@@ -20,7 +20,7 @@ export default function NavBar({ rightItems }: NavBarProps) {
       <nav style={{position:"sticky",top:0,zIndex:100,background:theme==="dark"?"rgba(6,14,28,.97)":"rgba(240,244,248,.97)",backdropFilter:"blur(20px)",borderBottom:"1px solid var(--border2)",padding:"0 28px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:9,cursor:"pointer"}} onClick={()=>router.push("/")}>
           <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-head)",fontWeight:800,fontSize:15,color:"#fff",flexShrink:0}}>D</div>
-          <span style={{fontFamily:"var(--font-head)",fontWeight:800,fontSize:15,letterSpacing:-.3,color:"var(--text1)"}}>DIGDAYA</span>
+          <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:15,letterSpacing:-.3,color:"var(--text1)"}}>DIGDAYA</span>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {rightItems}

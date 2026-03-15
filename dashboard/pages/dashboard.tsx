@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [liveCount,setLiveCount]=useState(1247);
   const [mounted,setMounted]=useState(false);
   const [loanStatus,setLoanStatus]=useState("");
+  const [loanAmount,setLoanAmount]=useState(0);
+  const [loanTenor,setLoanTenor]=useState(0);
   useEffect(()=>{
     setMounted(true);
     const u=localStorage.getItem("digdaya_user");
@@ -30,6 +32,8 @@ export default function Dashboard() {
     if(d)setUmkm(JSON.parse(d));
     if(s)setScore(parseInt(s));
     setLoanStatus(localStorage.getItem("digdaya_loan_status")||"");
+    setLoanAmount(parseInt(localStorage.getItem("digdaya_loan_amount")||"0"));
+    setLoanTenor(parseInt(localStorage.getItem("digdaya_tenor")||"0"));;
     setTxs(Array.from({length:8},makeTx));
   },[]);
   useEffect(()=>{
@@ -115,7 +119,7 @@ export default function Dashboard() {
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
             {[
               {l:"Credit Score",v:score>0?score.toString():"—",s:score>0?sl:"Belum dianalisis",c:score>0?sc:"var(--text5)",i:"◎"},
-              {l:"Pengajuan Kredit",v:loan>0?`Rp ${(loan/1e6).toFixed(0)}jt`:"—",s:umkm?.loanPurpose||"Belum diisi",c:"#028090",i:"◈"},
+              {l:lang==="id"?"Pengajuan Kredit":"Credit Application",v:loanAmount>0?`Rp ${(loanAmount/1e6).toFixed(0)}jt`:"—",s:loanAmount>0&&loanTenor>0?`Tenor ${loanTenor} bulan`:(umkm?.loanPurpose||"Belum diisi"),c:"#028090",i:"◈"},
               {l:"Total TX Tercatat",v:liveCount.toLocaleString("id-ID"),s:"Verified on-chain",c:"#02C39A",i:"◐"},
               {l:"Status Pengajuan",v:loanStatus==="approved"?"Disetujui":loanStatus==="pending"?"Menunggu Review":loanStatus==="rejected"?"Ditolak":score>0?"Belum Diajukan":"Pending",s:loanStatus==="approved"?"Dana siap dicairkan":loanStatus==="pending"?"Sedang ditinjau lender":loanStatus==="rejected"?"Coba lagi bulan depan":"Ajukan kredit sekarang",c:loanStatus==="approved"?"#02C39A":loanStatus==="pending"?"#F4A261":loanStatus==="rejected"?"#EF4444":"#028090",i:"◉"},
             ].map((s,i)=>(
