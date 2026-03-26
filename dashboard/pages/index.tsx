@@ -1,12 +1,13 @@
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/router";
-import { ThemeContext, LangContext } from "./_app";
+import { ThemeContext, LangContext, ToastContext } from "./_app";
 import NavBar from "../components/NavBar";
 
 export default function Landing() {
   const router = useRouter();
   const { theme } = useContext(ThemeContext);
   const { lang, t } = useContext(LangContext);
+  const { addToast } = useContext(ToastContext);
   const [mode,    setMode]    = useState("landing");
   const [form,    setForm]    = useState({name:"",email:"",phone:"",password:"",confirmPassword:""});
   const [error,   setError]   = useState("");
@@ -25,15 +26,16 @@ export default function Landing() {
   const handleRegister = async () => {
     setError("");
     if(!form.name||!form.email||!form.password) return setError(lang==="id"?"Semua field wajib diisi":"All fields are required");
-    if(!validateEmail(form.email)) return setError(lang==="id"?"Format email tidak valid (contoh: nama@gmail.com)":"Invalid email format");
+    if(!validateEmail(form.email)) {
+      addToast(lang==="id"?"Format email tidak valid (harus mengandung @ dan domain)":"Invalid email format", "error");
+      return setError(lang==="id"?"Format email tidak valid (contoh: nama@gmail.com)":"Invalid email format");
+    }
     if(form.password!==form.confirmPassword) return setError(lang==="id"?"Password tidak cocok":"Passwords do not match");
     if(form.password.length<6) return setError(lang==="id"?"Password minimal 6 karakter":"Password must be at least 6 characters");
     setLoading(true);
     await new Promise(r=>setTimeout(r,1200));
-    // Clear semua data sesi lama — mulai dari nol
-    const existingDb = localStorage.getItem("digdaya_users_db");
-    localStorage.clear();
-    if(existingDb) localStorage.setItem("digdaya_users_db", existingDb);
+    
+    // Check Email Uniqueness
     const db = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
     if(db.find((u:any)=>u.email===form.email)){ setLoading(false); return setError(lang==="id"?"Email sudah terdaftar. Silakan login.":"Email already registered."); }
     const newUser = {name:form.name,email:form.email,phone:form.phone,id:"USR-"+Date.now(),password:form.password};
@@ -48,7 +50,10 @@ export default function Landing() {
   const handleLogin = async () => {
     setError("");
     if(!form.email||!form.password) return setError(lang==="id"?"Email dan password wajib diisi":"Email and password required");
-    if(!validateEmail(form.email)) return setError(lang==="id"?"Format email tidak valid":"Invalid email format");
+    if(!validateEmail(form.email)) {
+      addToast(lang==="id"?"Format email tidak valid (harus mengandung @ dan domain)":"Invalid email format", "error");
+      return setError(lang==="id"?"Format email tidak valid":"Invalid email format");
+    }
     setLoading(true);
     await new Promise(r=>setTimeout(r,900));
     const db    = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
@@ -80,6 +85,18 @@ export default function Landing() {
     {icon:"◐",title:lang==="id"?"Pemantauan Inflasi":"Inflation Monitoring",desc:lang==="id"?"Harga komoditas pangan dipantau real-time sebagai faktor risiko kredit sektoral":"Food commodity prices monitored real-time as credit risk factors",color:"#7C3AED"},
   ];
 
+  const getScore = (pw:string) => {
+    let s = 0;
+    if(pw.length>=6) s++;
+    if(pw.length>=8) s++;
+    if(/[A-Z]/.test(pw)) s++;
+    if(/[0-9]/.test(pw)) s++;
+    if(/[^A-Za-z0-9]/.test(pw)) s++;
+    return s;
+  };
+  const pwScore = getScore(form.password);
+  const getPwColor = (sc:number) => sc<2?"#EF4444":sc<4?"#F4A261":"#02C39A";
+
   return (
     <>
       <style>{`
@@ -93,36 +110,38 @@ export default function Landing() {
         .btn-o{background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text1);padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .2s;width:100%}
         .btn-o:hover{border-color:#02C39A;color:#02C39A}
         .inp{background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text1);padding:12px 14px;font-size:14px;font-family:var(--font);width:100%;outline:none;transition:border-color .2s}
-        .inp:focus{border-color:#028090}
-        .inp::placeholder{color:var(--text5)}
-        .card{background:var(--card);border:1px solid var(--border);border-radius:16px}
-        .feat{transition:all .2s}
-        .feat:hover{transform:translateX(5px)}
         label{font-size:12px;color:var(--text3);display:block;margin-bottom:5px;font-weight:500;letter-spacing:.3px}
         .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
+        @keyframes float1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(50px, 30px) scale(1.1); } }
+        @keyframes float2 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-50px, -40px) scale(1.05); } }
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+        .feat { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s, border-color 0.4s, background 0.4s; border: 1px solid var(--border); cursor: pointer; }
+        .feat:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(2, 195, 154, 0.3); z-index: 10; border-color: rgba(2, 195, 154, 0.4); background: color-mix(in srgb, var(--card) 95%, #02C39A 5%); }
+        .feat:hover .feat-glow { opacity: 1 !important; transform: scale(1.1); }
+        .feat:hover .feat-icon { transform: scale(1.15) rotate(-5deg); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
       `}</style>
 
       {showUU&&(
         <div className="overlay" onClick={()=>setShowUU(false)}>
           <div onClick={e=>e.stopPropagation()} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:18,padding:36,maxWidth:560,width:"100%",maxHeight:"80vh",overflowY:"auto"}}>
-            <div style={{fontFamily:"var(--font-head)",fontSize:18,fontWeight:800,marginBottom:16,color:"#02C39A"}}>UU No. 27 Tahun 2022 — Perlindungan Data Pribadi</div>
+            <div style={{fontFamily:"var(--font-head)",fontSize:18,fontWeight:800,marginBottom:16,color:"#02C39A"}}>{lang==="id"?"UU No. 27 Tahun 2022 — Perlindungan Data Pribadi":"Law No. 27 of 2022 — Personal Data Protection"}</div>
             <div style={{fontSize:13,color:"var(--text3)",lineHeight:1.8,display:"flex",flexDirection:"column",gap:14}}>
-              <div><strong style={{color:"var(--text1)"}}>Apa itu UU PDP?</strong><br/>UU No. 27/2022 mengatur pengumpulan, pengolahan, penyimpanan, dan penggunaan data pribadi warga negara Indonesia secara komprehensif.</div>
-              <div><strong style={{color:"var(--text1)"}}>Bagaimana Digdaya melindungi data Anda?</strong><br/>Seluruh data pribadi tidak pernah dikirim ke server dalam bentuk asli. Digdaya hanya menyimpan <strong style={{color:"#02C39A"}}>hash kriptografis</strong> yang tidak bisa dikembalikan ke data asli (one-way encryption).</div>
-              <div><strong style={{color:"var(--text1)"}}>Hak Anda sebagai subjek data:</strong><br/>• Hak mengakses data pribadi Anda<br/>• Hak memperbaiki data yang tidak akurat<br/>• Hak menghapus data (right to be forgotten)<br/>• Hak membatasi pemrosesan data<br/>• Hak portabilitas data</div>
-              <div><strong style={{color:"var(--text1)"}}>Sanksi pelanggaran:</strong><br/>Sanksi administratif hingga Rp 2 miliar dan pidana hingga 6 tahun penjara bagi pelanggar UU PDP.</div>
-              <div style={{background:"rgba(2,195,154,.08)",border:"1px solid rgba(2,195,154,.15)",borderRadius:10,padding:"12px 14px",fontSize:12,color:"#02C39A"}}>Digdaya berkomitmen penuh terhadap kepatuhan UU PDP No. 27/2022 dan standar internasional GDPR.</div>
+              <div><strong style={{color:"var(--text1)"}}>{lang==="id"?"Apa itu UU PDP?":"What is PDP Law?"}</strong><br/>{lang==="id"?"UU No. 27/2022 mengatur pengumpulan, pengolahan, penyimpanan, dan penggunaan data pribadi warga negara Indonesia secara komprehensif.":"Law No. 27/2022 comprehensively regulates the collection, processing, storage, and use of personal data of Indonesian citizens."}</div>
+              <div><strong style={{color:"var(--text1)"}}>{lang==="id"?"Bagaimana Digdaya melindungi data Anda?":"How does Digdaya protect your data?"}</strong><br/>{lang==="id"?"Seluruh data pribadi tidak pernah dikirim ke server dalam bentuk asli. Digdaya hanya menyimpan ":"All personal data is never sent to the server in its original form. Digdaya only stores "}<strong style={{color:"#02C39A"}}>{lang==="id"?"hash kriptografis":"cryptographic hashes"}</strong>{lang==="id"?" yang tidak bisa dikembalikan ke data asli (one-way encryption).":" which cannot be reversed to original data (one-way encryption)."}</div>
+              <div><strong style={{color:"var(--text1)"}}>{lang==="id"?"Hak Anda sebagai subjek data:":"Your rights as a data subject:"}</strong><br/>• {lang==="id"?"Hak mengakses data pribadi Anda":"Right to access your personal data"}<br/>• {lang==="id"?"Hak memperbaiki data yang tidak akurat":"Right to rectify inaccurate data"}<br/>• {lang==="id"?"Hak menghapus data (right to be forgotten)":"Right to be forgotten"}<br/>• {lang==="id"?"Hak membatasi pemrosesan data":"Right to restrict data processing"}<br/>• {lang==="id"?"Hak portabilitas data":"Right to data portability"}</div>
+              <div><strong style={{color:"var(--text1)"}}>{lang==="id"?"Sanksi pelanggaran:":"Violation sanctions:"}</strong><br/>{lang==="id"?"Sanksi administratif hingga Rp 2 miliar dan pidana hingga 6 tahun penjara bagi pelanggar UU PDP.":"Administrative sanctions up to Rp 2 billion and criminal penalties up to 6 years in prison for PDP Law violators."}</div>
+              <div style={{background:"rgba(2,195,154,.08)",border:"1px solid rgba(2,195,154,.15)",borderRadius:10,padding:"12px 14px",fontSize:12,color:"#02C39A"}}>{lang==="id"?"Digdaya berkomitmen penuh terhadap kepatuhan UU PDP No. 27/2022 dan standar internasional GDPR.":"Digdaya is fully committed to complying with PDP Law No. 27/2022 and international GDPR standards."}</div>
             </div>
-            <button onClick={()=>setShowUU(false)} style={{marginTop:20,background:"linear-gradient(135deg,#028090,#02C39A)",border:"none",borderRadius:9,color:"#fff",padding:"11px 24px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>Saya Mengerti</button>
+            <button onClick={()=>setShowUU(false)} style={{marginTop:20,background:"linear-gradient(135deg,#028090,#02C39A)",border:"none",borderRadius:9,color:"#fff",padding:"11px 24px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>{lang==="id"?"Saya Mengerti":"I Understand"}</button>
           </div>
         </div>
       )}
 
       <div style={{minHeight:"100vh",background:"var(--bg)",position:"relative",overflow:"hidden"}}>
-        {theme==="dark"&&[["8%","10%","#028090",600],["78%","3%","#02C39A",400],["88%","60%","#F4A261",300],["3%","70%","#7C3AED",350]].map(([x,y,c,s]:any,i)=>(
-          <div key={i} style={{position:"fixed",left:x,top:y,width:s,height:s,borderRadius:"50%",background:c,filter:`blur(${s*.7}px)`,opacity:.07,pointerEvents:"none",zIndex:0}}/>
-        ))}
-        <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,backgroundImage:"linear-gradient(var(--border2) 1px,transparent 1px),linear-gradient(90deg,var(--border2) 1px,transparent 1px)",backgroundSize:"48px 48px"}}/>
+        <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0, overflow:"hidden"}}>
+          <div style={{position:"absolute", top:"-10%", left:"-10%", width:"50%", height:"50%", background: "radial-gradient(circle, rgba(2,195,154,0.08) 0%, transparent 70%)", filter:"blur(60px)", animation:"float1 15s infinite alternate ease-in-out"}} />
+          <div style={{position:"absolute", bottom:"-10%", right:"-10%", width:"40%", height:"60%", background: "radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 70%)", filter:"blur(60px)", animation:"float2 20s infinite alternate ease-in-out"}} />
+        </div>
 
         <NavBar rightItems={
           <div style={{display:"flex",alignItems:"center",gap:6,background:"rgba(2,195,154,.08)",border:"1px solid rgba(2,195,154,.18)",borderRadius:20,padding:"5px 14px",fontSize:11}}>
@@ -159,10 +178,38 @@ export default function Landing() {
                 </div>
               </div>
               <div style={{display:"grid",gap:12}}>
+                <div className="card fade-up" style={{padding:0, overflow:"hidden", border:"1px solid rgba(2,195,154,.2)", boxShadow:"0 20px 40px rgba(0,0,0,.3)", marginBottom:16, position:"relative", animationDelay:"0.2s"}}>
+                  <div style={{background:"var(--bg2)", padding:"12px 18px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:8}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:"#EF4444"}}/>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:"#F4A261"}}/>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:"#02C39A"}}/>
+                    <div style={{fontSize:11,fontWeight:600,color:"var(--text3)",fontFamily:"var(--font-mono)",marginLeft:12,letterSpacing:.5}}>{lang==="id"?"Demo Analisis AI":"AI Analysis Demo"}</div>
+                  </div>
+                  <div style={{padding:"24px", display:"flex", flexDirection:"column", gap:16, position:"relative", overflow:"hidden", background:"color-mix(in srgb, var(--bg) 90%, transparent)"}}>
+                    <div style={{position:"absolute", top:0, left:0, right:0, height:"50%", background:"linear-gradient(180deg, rgba(2,195,154,.05) 0%, transparent 100%)", animation:"scanline 3s linear infinite", pointerEvents:"none"}}/>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+                      <div>
+                        <div style={{fontSize:11,color:"var(--text4)",marginBottom:6,letterSpacing:.5,textTransform:"uppercase",fontWeight:600}}>{lang==="id"?"Model XGBoost Aktif":"Active XGBoost Model"}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:13,color:"#02C39A",display:"flex",alignItems:"center",gap:8,fontWeight:500}}><span className="dot"/> Analyzing Tx Patterns...</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:11,color:"var(--text4)",marginBottom:4,fontWeight:500}}>{lang==="id"?"Skor Konfidensi":"Confidence"}</div>
+                        <div style={{fontFamily:"var(--font-head)",fontSize:24,fontWeight:800,color:"var(--text1)",letterSpacing:-1}}>96.4%</div>
+                      </div>
+                    </div>
+                    <div style={{height:4,width:"100%",background:"var(--border2)",borderRadius:2,position:"relative",overflow:"hidden"}}>
+                      <div style={{position:"absolute",left:0,top:0,bottom:0,width:"85%",background:"linear-gradient(90deg, #028090, #02C39A)", animation:"progressW 2s infinite alternate ease-in-out"}}/>
+                    </div>
+                  </div>
+                </div>
                 {features.map((f,i)=>(
-                  <div key={i} className="card feat" style={{padding:"16px 20px",display:"flex",gap:14,alignItems:"flex-start"}}>
-                    <div style={{width:38,height:38,borderRadius:10,background:`${f.color}18`,border:`1px solid ${f.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:f.color,flexShrink:0,fontFamily:"monospace"}}>{f.icon}</div>
-                    <div><div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{f.title}</div><div style={{fontSize:12,color:"var(--text3)",lineHeight:1.6}}>{f.desc}</div></div>
+                  <div key={i} className="card feat fade-up" style={{padding:"16px 20px",display:"flex",gap:14,alignItems:"flex-start", animationDelay:`${(i * 0.1) + 0.3}s`, position:"relative", overflow:"hidden"}}>
+                    <div className="feat-glow" style={{position:"absolute", top:"-50%", left:"-50%", width:"200%", height:"200%", background:`radial-gradient(circle at center, ${f.color}15 0%, transparent 60%)`, opacity:0, transition:"all 0.4s", pointerEvents:"none"}}/>
+                    <div className="feat-icon" style={{width:38,height:38,borderRadius:10,background:`${f.color}18`,border:`1px solid ${f.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:f.color,flexShrink:0,fontFamily:"monospace", transition:"transform 0.4s cubic-bezier(0.16,1,0.3,1)"}}>{f.icon}</div>
+                    <div style={{position:"relative", zIndex:1}}>
+                      <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{f.title}</div>
+                      <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.6}}>{f.desc}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -181,7 +228,7 @@ export default function Landing() {
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {mode==="register"&&<div><label>{lang==="id"?"Nama Lengkap":"Full Name"}</label><input className="inp" placeholder={lang==="id"?"cth. Budi Santoso":"e.g. John Doe"} value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>}
                 <div><label>{lang==="id"?"Alamat Email":"Email Address"}</label><input className="inp" type="email" placeholder="nama@gmail.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></div>
-                {mode==="register"&&<div><label>{lang==="id"?"Nomor WhatsApp":"WhatsApp Number"}</label><input className="inp" placeholder="08xx-xxxx-xxxx" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></div>}
+                {mode==="register"&&<div><label>{lang==="id"?"Nomor WhatsApp":"WhatsApp Number"}</label><input className="inp" placeholder="08xx-xxxx-xxxx" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value.replace(/\D/g,"")})}/></div>}
                 <div><label>Password</label>
                   <div style={{position:"relative"}}>
                     <input className="inp" type={showPw?"text":"password"} placeholder={lang==="id"?"Minimal 6 karakter":"At least 6 characters"} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} style={{paddingRight:44}}/>
@@ -189,6 +236,16 @@ export default function Landing() {
                       {showPw?<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
                     </button>
                   </div>
+                  {mode==="register" && form.password.length>0 && (
+                    <div style={{display:"flex",gap:4,marginTop:8,alignItems:"center"}}>
+                      {[1,2,3,4,5].map(i=>(
+                        <div key={i} style={{height:4,flex:1,borderRadius:2,background:i<=pwScore?getPwColor(pwScore):"var(--border2)",transition:"all .3s"}}/>
+                      ))}
+                      <span style={{fontSize:10,color:getPwColor(pwScore),fontWeight:700,marginLeft:6,letterSpacing:.5,width:40,textAlign:"right"}}>
+                        {pwScore<2?(lang==="id"?"LEMAH":"WEAK"):pwScore<4?(lang==="id"?"SEDANG":"MEDIUM"):(lang==="id"?"KUAT":"STRONG")}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {mode==="register"&&(
                   <div><label>{lang==="id"?"Konfirmasi Password":"Confirm Password"}</label>

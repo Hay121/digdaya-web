@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   --bg:      #060E1C;
@@ -18,9 +18,9 @@
   --danger:  #EF4444;
   --purple:  #7C3AED;
   --shadow:  0 8px 32px rgba(0,0,0,.4);
-  --font:      'DM Sans', sans-serif;
-  --font-head: 'Syne', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font:      'Inter', sans-serif;
+  --font-head: 'Inter', sans-serif;
+  --font-mono: 'Inter', sans-serif;
 }
 
 [data-theme="light"] {

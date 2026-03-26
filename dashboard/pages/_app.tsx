@@ -1,3 +1,4 @@
+import Head from "next/head";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { useEffect, useState, createContext, useCallback, useContext } from "react";
@@ -134,6 +135,9 @@ export default function App({ Component, pageProps }: AppProps) {
     <ThemeContext.Provider value={{theme,toggle}}>
       <ToastContext.Provider value={{addToast}}>
         <LangContext.Provider value={{lang,setLang,t}}>
+          <Head>
+            <title>DIGDAYA</title>
+          </Head>
           {progress && <div className="progress-bar"/>}
           <div key={fadeKey} className="page-wrap">
             <Component {...pageProps}/>

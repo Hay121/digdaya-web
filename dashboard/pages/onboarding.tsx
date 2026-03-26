@@ -9,6 +9,16 @@ const parseRp=(v:string)=>v.replace(/\D/g,"");
 // Komponen autocomplete generik
 // Simple hash function (SHA-256 via Web Crypto API)
 async function hashData(input: string): Promise<string> {
+  if (typeof window === 'undefined' || !window.crypto || !window.crypto.subtle) {
+    // Fallback for non-secure contexts (e.g. local IP instead of localhost)
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        const char = input.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(16).padStart(16, "0");
+  }
   const encoder = new TextEncoder();
   const data = encoder.encode(input);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -49,7 +59,7 @@ function AutoComplete({label,value,onChange,options,placeholder,disabled}:{label
           style={{opacity:disabled?.5:1}}
         />
         {open&&query&&filtered.length>0&&!disabled&&(
-          <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,zIndex:200,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.4)",maxHeight:280,overflowY:"auto"}}>
+          <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#0F172A",border:"1px solid var(--border)",borderRadius:10,zIndex:200,overflow:"hidden",boxShadow:"0 16px 40px rgba(0,0,0,.6)",maxHeight:280,overflowY:"auto"}}>
             {filtered.map(o=>{
               const qi = o.name.toLowerCase().indexOf(query.toLowerCase());
               return (
@@ -71,8 +81,102 @@ function AutoComplete({label,value,onChange,options,placeholder,disabled}:{label
   );
 }
 
+function CustomSelect({label, value, onChange, options, placeholder}: {label?:string; value:string; onChange:(v:string)=>void; options:{val:string; label:string}[]; placeholder:string}) {
+  const [open, setOpen] = useState(false);
+  const selectedObj = options.find(o => o.val === value);
+
+  return (
+    <div style={{position:"relative", fontFamily:"var(--font)"}}>
+      {label && <label>{label}</label>}
+      <div 
+        className="inp" 
+        style={{
+          display:"flex", justifyContent:"space-between", alignItems:"center", 
+          cursor:"pointer", userSelect:"none",
+          borderColor: open ? "#028090" : "var(--border)",
+          boxShadow: open ? "0 0 0 3px rgba(2,128,144,.15), inset 0 2px 4px rgba(0,0,0,.02)" : "inset 0 2px 4px rgba(0,0,0,.02)",
+          background: open ? "var(--card)" : "var(--bg2)",
+          color: selectedObj ? "var(--text1)" : "var(--text5)",
+          padding: "13px 16px"
+        }}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{selectedObj ? selectedObj.label : placeholder}</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s"}}>
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+      
+      {open && (
+        <div style={{
+          position:"absolute", top:"calc(100% + 6px)", left:0, right:0, 
+          background:"#0F172A", border:"1px solid var(--border)", borderRadius:12, 
+          zIndex:200, overflow:"hidden", boxShadow:"0 16px 40px rgba(0,0,0,0.6)",
+          padding: 6
+        }}>
+          {options.map((o, i) => (
+            <div 
+              key={i} 
+              onMouseDown={(e)=>{ e.preventDefault(); onChange(o.val); setOpen(false); }}
+              style={{
+                padding:"10px 14px", fontSize:13, cursor:"pointer", 
+                borderRadius:8, color: value === o.val ? "#02C39A" : "var(--text1)",
+                background: value === o.val ? "rgba(2,195,154,0.08)" : "transparent",
+                fontWeight: value === o.val ? 600 : 500,
+                transition: "all 0.15s",
+                marginBottom: i === options.length - 1 ? 0 : 2
+              }}
+              onMouseEnter={e => { if (value !== o.val) e.currentTarget.style.background = "rgba(2,128,144,0.1)"; }}
+              onMouseLeave={e => { if (value !== o.val) e.currentTarget.style.background = "transparent"; }}
+            >
+              {o.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const STEPS_ID = ["Profil Usaha","Data Keuangan","Rekam Jejak","Dokumen","Konfirmasi"];
 const STEPS_EN = ["Business Profile","Financial Data","Track Record","Documents","Confirmation"];
+
+const BIZ_TYPES = [
+  {id:"Grocery", idL:"Warung / Toko Sembako", enL:"Grocery / Kiosk"},
+  {id:"Agri", idL:"Pertanian / Perkebunan", enL:"Agriculture / Plantation"},
+  {id:"Livestock", idL:"Peternakan / Perikanan", enL:"Livestock / Fishery"},
+  {id:"FB", idL:"Kuliner / Makanan", enL:"Culinary / F&B"},
+  {id:"Logistics", idL:"Jasa Transportasi / Logistik", enL:"Logistics / Transport"},
+  {id:"Crafts", idL:"Kerajinan / Manufaktur", enL:"Crafts / Manufacturing"},
+  {id:"Others", idL:"Jasa Lainnya", enL:"Other Services"}
+];
+
+const BIZ_AGES = [
+  {id:"<1", idL:"Kurang dari 1 tahun", enL:"Less than 1 year"},
+  {id:"1-2", idL:"1–2 tahun", enL:"1–2 years"},
+  {id:"2-5", idL:"2–5 tahun", enL:"2–5 years"},
+  {id:"5-10", idL:"5–10 tahun", enL:"5–10 years"},
+  {id:">10", idL:"Lebih dari 10 tahun", enL:"More than 10 years"}
+];
+
+const LOAN_PURPOSES = [
+  {id:"Stock", idL:"Tambah stok barang / bahan baku", enL:"Add stock / raw materials"},
+  {id:"Renovation", idL:"Renovasi atau perluasan tempat usaha", enL:"Renovation or business expansion"},
+  {id:"Equipment", idL:"Pembelian peralatan atau mesin", enL:"Purchase equipment or machinery"},
+  {id:"WorkingCapital", idL:"Modal kerja operasional harian", enL:"Daily operational working capital"},
+  {id:"Expansion", idL:"Ekspansi ke lokasi atau produk baru", enL:"Expansion to new location or product"},
+  {id:"Refinancing", idL:"Refinancing hutang usaha", enL:"Refinancing business debt"}
+];
+
+const DIGITAL_RATIOS = [
+  {id:"5",  idL: "0–10% — hampir semua offline", enL: "0–10% — almost all offline"},
+  {id:"25", idL: "10–40% — sebagian online", enL: "10–40% — partly online"},
+  {id:"55", idL: "40–70% — mayoritas online", enL: "40–70% — majority online"},
+  {id:"85", idL: "70–100% — hampir semua online", enL: "70–100% — almost all online"}
+];
+
+const BANKS = ["BCA — Bank Central Asia","BRI — Bank Rakyat Indonesia","BNI — Bank Negara Indonesia","Mandiri — Bank Mandiri","BSI — Bank Syariah Indonesia","CIMB Niaga","Danamon","Permata Bank","BTN — Bank Tabungan Negara","BPD Jawa Tengah","BPD Jawa Barat (BJB)","BPD Jawa Timur","Bank Muamalat","Bank Mega","OCBC NISP","Maybank Indonesia","Bank Bukopin","Allo Bank","Sea Bank","Jago Bank"];
+const BANK_OPTIONS = [...BANKS.map(b=>({id:b, idL:b, enL:b})), {id:"Other", idL:"Lainnya", enL:"Other"}];
 
 export default function Onboarding() {
   const router = useRouter();
@@ -201,11 +305,11 @@ export default function Onboarding() {
         body{background:var(--bg);color:var(--text1);font-family:var(--font);-webkit-font-smoothing:antialiased}
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         .fade-up{animation:fadeUp .4s ease forwards}
-        .inp{background:var(--bg2);border:1px solid var(--border);border-radius:9px;color:var(--text1);padding:11px 14px;font-size:14px;font-family:var(--font);width:100%;outline:none;transition:border-color .2s}
-        .inp:focus{border-color:#028090}
+        .inp{background:var(--bg2);border:1px solid var(--border);border-radius:12px;color:var(--text1);padding:13px 16px;font-size:14px;font-family:var(--font);width:100%;outline:none;transition:all .25s cubic-bezier(.16,1,.3,1);box-shadow:inset 0 2px 4px rgba(0,0,0,.02)}
+        .inp:focus{border-color:#028090;box-shadow:0 0 0 3px rgba(2,128,144,.15),inset 0 2px 4px rgba(0,0,0,.02);background:var(--card)}
         .inp::placeholder{color:var(--text5)}
-        select.inp{cursor:pointer}
-        select.inp option{background:var(--bg2);color:var(--text1)}
+        select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:16px;padding-right:40px}
+        select.inp option{background:var(--bg);color:var(--text1);padding:10px}
         .btn{background:linear-gradient(135deg,#028090,#02C39A);border:none;border-radius:9px;color:#fff;padding:12px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .2s}
         .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(2,195,154,.25)}
         .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
@@ -252,18 +356,20 @@ export default function Onboarding() {
                 <div style={{display:"grid",gap:14}}>
                   <div><label>{lang==="id"?"Nama Usaha":"Business Name"}</label><input className="inp" placeholder={lang==="id"?"cth. Warung Sari Jaya":"e.g. Sari Jaya Store"} value={form.bizName} onChange={e=>u("bizName",e.target.value)}/></div>
                   <div className="g2">
-                    <div><label>{lang==="id"?"Jenis Usaha":"Business Type"}</label>
-                      <select className="inp" value={form.bizType} onChange={e=>u("bizType",e.target.value)}>
-                        <option value="">{lang==="id"?"Pilih jenis usaha":"Choose business type"}</option>
-                        {["Warung / Toko Sembako","Pertanian / Perkebunan","Peternakan / Perikanan","Kuliner / Makanan","Jasa Transportasi / Logistik","Kerajinan / Manufaktur","Jasa Lainnya"].map(o=><option key={o} value={o}>{o}</option>)}
-                      </select>
-                    </div>
-                    <div><label>{lang==="id"?"Lama Usaha":"Business Age"}</label>
-                      <select className="inp" value={form.bizAge} onChange={e=>u("bizAge",e.target.value)}>
-                        <option value="">{lang==="id"?"Pilih durasi":"Choose duration"}</option>
-                        {["Kurang dari 1 tahun","1–2 tahun","2–5 tahun","5–10 tahun","Lebih dari 10 tahun"].map(o=><option key={o} value={o}>{o}</option>)}
-                      </select>
-                    </div>
+                    <CustomSelect 
+                      label={lang==="id"?"Jenis Usaha":"Business Type"} 
+                      placeholder={lang==="id"?"Pilih jenis usaha":"Choose business type"} 
+                      value={form.bizType} 
+                      onChange={v=>u("bizType",v)} 
+                      options={BIZ_TYPES.map(x=>({val:x.id, label: lang==="id"?x.idL:x.enL}))} 
+                    />
+                    <CustomSelect 
+                      label={lang==="id"?"Lama Usaha":"Business Age"} 
+                      placeholder={lang==="id"?"Pilih durasi":"Choose duration"} 
+                      value={form.bizAge} 
+                      onChange={v=>u("bizAge",v)} 
+                      options={BIZ_AGES.map(x=>({val:x.id, label: lang==="id"?x.idL:x.enL}))}
+                    />
                   </div>
 
                   {/* Wilayah dinamis */}
@@ -295,12 +401,13 @@ export default function Onboarding() {
                     <div><label>{lang==="id"?"Cicilan / Hutang Aktif":"Active Debt/Installment"}</label><input className="inp" placeholder="Rp 0" value={fmtRp(form.existingDebt)} onChange={e=>u("existingDebt",parseRp(e.target.value))}/><div style={{fontSize:11,color:"var(--text5)",marginTop:4}}>{lang==="id"?"Isi Rp 0 jika tidak ada":"Enter Rp 0 if none"}</div></div>
                     
                   </div>
-                  <div><label>{lang==="id"?"Tujuan Penggunaan Dana":"Purpose of Funds"}</label>
-                    <select className="inp" value={form.loanPurpose} onChange={e=>u("loanPurpose",e.target.value)}>
-                      <option value="">{lang==="id"?"Pilih tujuan penggunaan":"Select purpose"}</option>
-                      {["Tambah stok barang / bahan baku","Renovasi atau perluasan tempat usaha","Pembelian peralatan atau mesin","Modal kerja operasional harian","Ekspansi ke lokasi atau produk baru","Refinancing hutang usaha"].map(o=><option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
+                  <CustomSelect 
+                    label={lang==="id"?"Tujuan Penggunaan Dana":"Purpose of Funds"} 
+                    placeholder={lang==="id"?"Pilih tujuan penggunaan":"Select purpose"} 
+                    value={form.loanPurpose} 
+                    onChange={v=>u("loanPurpose",v)} 
+                    options={LOAN_PURPOSES.map(x=>({val:x.id, label: lang==="id"?x.idL:x.enL}))}
+                  />
                   {form.monthlyRevenue&&form.monthlyExpense&&(
                     <div style={{background:cashflow>=0?"rgba(2,195,154,.07)":"rgba(239,68,68,.07)",border:`1px solid ${cashflow>=0?"rgba(2,195,154,.15)":"rgba(239,68,68,.15)"}`,borderRadius:10,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div><div style={{fontSize:11,color:cashflow>=0?"#02C39A":"#EF4444",fontWeight:600,letterSpacing:.5,textTransform:"uppercase",marginBottom:2}}>{lang==="id"?"Estimasi Arus Kas Bersih":"Estimated Net Cash Flow"}</div><div style={{fontSize:11,color:"var(--text4)"}}>{lang==="id"?"Pendapatan dikurangi pengeluaran bulanan":"Revenue minus monthly expenses"}</div></div>
@@ -330,26 +437,29 @@ export default function Onboarding() {
                         <span className="badge">{item.badge}</span>
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
-                        <input className="inp" style={{width:100}} type="number" min="0" max="100" placeholder="0–100" value={(form as any)[item.key]} onChange={e=>u(item.key,e.target.value)}/>
+                        <input className="inp" style={{width:100}} placeholder="0–100" value={(form as any)[item.key]} onChange={e=>{
+                          let val = e.target.value.replace(/\D/g,"");
+                          if(val && parseInt(val) > 100) val = "100";
+                          u(item.key, val);
+                        }}/>
                         <span style={{color:"var(--text3)",fontSize:14}}>%</span>
-                        {(form as any)[item.key]&&<div style={{fontSize:12,fontWeight:600,color:parseInt((form as any)[item.key])>=80?"#02C39A":parseInt((form as any)[item.key])>=60?"#F4A261":"#EF4444"}}>{parseInt((form as any)[item.key])>=80?"Sangat baik":parseInt((form as any)[item.key])>=60?"Cukup baik":"Perlu ditingkatkan"}</div>}
+                        {(form as any)[item.key]&&<div style={{fontSize:12,fontWeight:600,color:parseInt((form as any)[item.key])>=80?"#02C39A":parseInt((form as any)[item.key])>=60?"#F4A261":"#EF4444"}}>{parseInt((form as any)[item.key])>=80?(lang==="id"?"Sangat baik":"Excellent"):parseInt((form as any)[item.key])>=60?(lang==="id"?"Cukup baik":"Fair"):(lang==="id"?"Perlu ditingkatkan":"Needs improvement")}</div>}
                       </div>
                     </div>
                   ))}
                   <div className="g2">
                     <div className="card" style={{padding:"16px 18px"}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><label style={{textTransform:"none",letterSpacing:0,fontSize:12,fontWeight:600}}>{lang==="id"?"Pelanggan Unik / Bulan":"Unique Customers / Month"}</label><span className="badge">Market</span></div>
-                      <input className="inp" type="number" placeholder={lang==="id"?"cth. 150":"e.g. 150"} value={form.uniqueBuyers} onChange={e=>u("uniqueBuyers",e.target.value)}/>
+                      <input className="inp" placeholder={lang==="id"?"cth. 150":"e.g. 150"} value={form.uniqueBuyers} onChange={e=>u("uniqueBuyers",e.target.value.replace(/\D/g,""))}/>
                     </div>
                     <div className="card" style={{padding:"16px 18px"}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><label style={{textTransform:"none",letterSpacing:0,fontSize:12,fontWeight:600}}>{lang==="id"?"Penjualan via Digital":"Digital Sales"}</label><span className="badge">Digital</span></div>
-                      <select className="inp" value={form.digitalRatio} onChange={e=>u("digitalRatio",e.target.value)}>
-                        <option value="">{lang==="id"?"Pilih proporsi":"Select proportion"}</option>
-                        <option value="5">0–10% — {lang==="id"?"hampir semua offline":"mostly offline"}</option>
-                        <option value="25">10–40% — {lang==="id"?"sebagian online":"partly online"}</option>
-                        <option value="55">40–70% — {lang==="id"?"mayoritas online":"mostly online"}</option>
-                        <option value="85">70–100% — {lang==="id"?"hampir semua online":"almost all online"}</option>
-                      </select>
+                      <CustomSelect 
+                        placeholder={lang==="id"?"Pilih proporsi":"Select proportion"} 
+                        value={form.digitalRatio} 
+                        onChange={v=>u("digitalRatio",v)} 
+                        options={DIGITAL_RATIOS.map(x=>({val:x.id, label: lang==="id"?x.idL:x.enL}))} 
+                      />
                     </div>
                   </div>
                 </div>
@@ -460,11 +570,13 @@ export default function Onboarding() {
                   </div>
                   <div style={{fontSize:11,color:"var(--text3)",marginBottom:10}}>{lang==="id"?"8–16 digit. Hanya 4 digit terakhir yang ditampilkan, sisanya di-mask.":"8–16 digits. Only last 4 digits shown, rest masked."}</div>
                   <div style={{marginBottom:10}}>
-                    <label style={{fontSize:11,color:"var(--text3)",display:"block",marginBottom:5,fontWeight:500,letterSpacing:.4,textTransform:"uppercase"}}>{lang==="id"?"Nama Bank":"Bank Name"}</label>
-                    <select className="inp" value={form.bankName||""} onChange={e=>u("bankName",e.target.value)}>
-                      <option value="">{lang==="id"?"Pilih bank":"Select bank"}</option>
-                      {["BCA — Bank Central Asia","BRI — Bank Rakyat Indonesia","BNI — Bank Negara Indonesia","Mandiri — Bank Mandiri","BSI — Bank Syariah Indonesia","CIMB Niaga","Danamon","Permata Bank","BTN — Bank Tabungan Negara","BPD Jawa Tengah","BPD Jawa Barat (BJB)","BPD Jawa Timur","Bank Muamalat","Bank Mega","OCBC NISP","Maybank Indonesia","Bank Bukopin","Allo Bank","Sea Bank","Jago Bank","Lainnya"].map(b=><option key={b} value={b}>{b}</option>)}
-                    </select>
+                    <CustomSelect 
+                      label={lang==="id"?"Nama Bank":"Bank Name"} 
+                      placeholder={lang==="id"?"Pilih bank":"Select bank"} 
+                      value={form.bankName||""} 
+                      onChange={v=>u("bankName",v)} 
+                      options={BANK_OPTIONS.map(x=>({val:x.id, label: lang==="id"?x.idL:x.enL}))} 
+                    />
                   </div>
                   <div style={{position:"relative"}}>
                     <input className="inp"
