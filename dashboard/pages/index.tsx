@@ -41,6 +41,10 @@ export default function Landing() {
     const newUser = {name:form.name,email:form.email,phone:form.phone,id:"USR-"+Date.now(),password:form.password};
     db.push(newUser);
     localStorage.setItem("digdaya_users_db", JSON.stringify(db));
+
+    const SESSION_KEYS = ["digdaya_step","digdaya_score","digdaya_umkm_data","digdaya_loan_status","digdaya_loan_amount","digdaya_tenor","digdaya_tx_sig","digdaya_tx_hash","digdaya_tx_explorer","digdaya_masked_entity","digdaya_disburse_sig","digdaya_disburse_explorer","digdaya_approved_date","digdaya_paid_installments"];
+    SESSION_KEYS.forEach(k=>localStorage.removeItem(k));
+
     localStorage.setItem("digdaya_user", JSON.stringify(newUser));
     localStorage.setItem("digdaya_step","onboarding");
     setLoading(false);
@@ -59,6 +63,11 @@ export default function Landing() {
     const db    = JSON.parse(localStorage.getItem("digdaya_users_db")||"[]");
     const found = db.find((u:any)=>u.email===form.email&&(u.password===form.password||u.password===form.password||u.password===btoa(form.password)||u.password===btoa(unescape(encodeURIComponent(form.password)))||u.password===btoa(unescape(encodeURIComponent(form.password)))));
     if(!found){ setLoading(false); return setError(lang==="id"?"Email atau password salah":"Wrong email or password"); }
+    
+    // Clear current session keys so they don't leak into the new login
+    const SESSION_KEYS = ["digdaya_step","digdaya_score","digdaya_umkm_data","digdaya_loan_status","digdaya_loan_amount","digdaya_tenor","digdaya_tx_sig","digdaya_tx_hash","digdaya_tx_explorer","digdaya_masked_entity","digdaya_disburse_sig","digdaya_disburse_explorer","digdaya_approved_date","digdaya_paid_installments", "digdaya_onboarding_step", "digdaya_umkm_draft"];
+    SESSION_KEYS.forEach(k=>localStorage.removeItem(k));
+
     // Restore sesi terakhir akun ini
     const sessionKey = "digdaya_session_"+found.id;
     const lastSession = localStorage.getItem(sessionKey);

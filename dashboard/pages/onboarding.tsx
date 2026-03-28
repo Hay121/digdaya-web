@@ -277,7 +277,8 @@ export default function Onboarding() {
     localStorage.setItem("digdaya_step","done");
     try {
       const usr = JSON.parse(localStorage.getItem("digdaya_user")||"{}");
-      const res = await fetch("https://kortney-hamulate-annamarie.ngrok-free.dev/api/v1/transactions",{
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const res = await fetch(`${API_URL}/api/v1/transactions`,{
         method:"POST",
         headers:{"Content-Type":"application/json","ngrok-skip-browser-warning":"true"},
         body:JSON.stringify({entityId:usr.id||usr.email||"anon",transactionType:"Cashflow",amountIdr:parseInt(parseRp(form.monthlyRevenue)||"0"),hashData:form.bizName+":"+form.bizType+":"+form.loanAmount}),

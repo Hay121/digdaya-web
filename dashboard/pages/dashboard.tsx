@@ -73,7 +73,10 @@ export default function Dashboard() {
           <button className="nbtn" onClick={()=>router.push("/admin")}>{lang==="id"?"Panel Lender":"Lender Panel"}</button>
           <button className="nbtn" onClick={()=>router.push("/history")}>{lang==="id"?"Riwayat TX":"TX History"}</button>
           <button className="nbtn" onClick={()=>router.push("/profile")}>{lang==="id"?"Profil":"Profile"}</button>
-          <button className="nbtn" onClick={()=>{localStorage.clear();router.push("/")}}>{lang==="id"?"Keluar":"Logout"}</button>
+          <button className="nbtn" onClick={()=>{
+            ["digdaya_user","digdaya_step","digdaya_score","digdaya_umkm_data","digdaya_loan_status","digdaya_loan_amount","digdaya_tenor","digdaya_tx_sig","digdaya_tx_hash","digdaya_tx_explorer","digdaya_masked_entity","digdaya_disburse_sig","digdaya_disburse_explorer","digdaya_approved_date","digdaya_paid_installments","digdaya_onboarding_step","digdaya_umkm_draft"].forEach(k=>localStorage.removeItem(k));
+            router.push("/");
+          }}>{lang==="id"?"Keluar":"Logout"}</button>
         </div>
       }/>
 

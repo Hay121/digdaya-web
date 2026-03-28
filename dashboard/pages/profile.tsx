@@ -157,7 +157,10 @@ export default function Profile() {
 
               <div className="card" style={{padding:"18px 20px"}}>
                 <div style={{fontFamily:"var(--font-head)",fontSize:12,fontWeight:700,color:"var(--text3)",letterSpacing:1,textTransform:"uppercase",marginBottom:14}}>Zona Bahaya</div>
-                <button onClick={()=>{localStorage.clear();router.push("/");}} style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:9,color:"#EF4444",padding:"10px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>Keluar dari Akun</button>
+                <button onClick={()=>{
+                  ["digdaya_user","digdaya_step","digdaya_score","digdaya_umkm_data","digdaya_loan_status","digdaya_loan_amount","digdaya_tenor","digdaya_tx_sig","digdaya_tx_hash","digdaya_tx_explorer","digdaya_masked_entity","digdaya_disburse_sig","digdaya_disburse_explorer","digdaya_approved_date","digdaya_paid_installments","digdaya_onboarding_step","digdaya_umkm_draft"].forEach(k=>localStorage.removeItem(k));
+                  router.push("/");
+                }} style={{background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:9,color:"#EF4444",padding:"10px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--font)"}}>Keluar dari Akun</button>
               </div>
             </div>
           </div>
