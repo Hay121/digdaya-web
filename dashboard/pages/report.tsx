@@ -106,7 +106,7 @@ export default function Report() {
     }
     try {
       const usr = JSON.parse(localStorage.getItem("digdaya_user")||"{}");
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const API_URL = "https://kortney-hamulate-annamarie.ngrok-free.dev";
       const res = await fetch(`${API_URL}/api/v1/credit-score`,{
         method:"POST",
         headers:{"Content-Type":"application/json","ngrok-skip-browser-warning":"true"},
