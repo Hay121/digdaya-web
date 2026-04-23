@@ -210,7 +210,7 @@ export default function Advisor() {
                   {lang==="id"?"Konsultan Kredit AI — ModalAI":"AI Credit Advisor — ModalAI"}
                 </span>
               </div>
-              <div style={{fontSize:11,color:"var(--text4)",background:"rgba(5,166,107,.1)",border:"1px solid rgba(5,166,107,.2)",borderRadius:20,padding:"3px 10px",color:"#05A66B",fontWeight:600}}>
+              <div style={{fontSize:11,background:"rgba(5,166,107,.1)",border:"1px solid rgba(5,166,107,.2)",borderRadius:20,padding:"3px 10px",color:"#05A66B",fontWeight:600}}>
                 Azure OpenAI
               </div>
             </div>
