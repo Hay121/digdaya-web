@@ -2,6 +2,7 @@ import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import crypto from "crypto";
+import { AzureOpenAI } from "openai";
 import {
   Connection, Keypair, PublicKey,
   Transaction, TransactionInstruction, sendAndConfirmTransaction
@@ -18,6 +19,18 @@ const MEMO_PROGRAM = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
 
 let keypair:    Keypair    | null = null;
 let connection: Connection | null = null;
+
+// Azure OpenAI Client
+let azureAI: AzureOpenAI | null = null;
+function initAzureAI() {
+  const key      = process.env.AZURE_OPENAI_KEY;
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const deploy   = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
+  if(!key || !endpoint) { console.warn("⚠️  Azure OpenAI not configured"); return; }
+  azureAI = new AzureOpenAI({ apiKey: key, endpoint, apiVersion: "2024-02-01", deployment: deploy });
+  console.log("✅ Azure OpenAI ready");
+}
+initAzureAI();
 
 function initWallet(): void {
   const raw = process.env.WALLET_SECRET_JSON;
@@ -119,6 +132,48 @@ app.post("/api/v1/credit-score", async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error("Credit error:", e.message);
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── AI Advisor Chat ──────────────────────────────────────────────────────
+app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
+  const { message, creditScore, bizType, onTimePayment, deliveryRate, digitalRatio, monthlyRevenue, monthlyExpense, lang } = req.body;
+  if (!message) { res.status(400).json({ success: false, error: "Message required" }); return; }
+
+  const fallbackResponse = (msg: string, score: number) => {
+    const tips: string[] = [];
+    if (score < 580) tips.push(lang==="en" ? "Focus on paying suppliers on time to boost your behavioral score." : "Fokus bayar supplier tepat waktu untuk meningkatkan skor behavioral.");
+    if (score < 670) tips.push(lang==="en" ? "Expand your digital sales channels (Tokopedia, Shopee) to increase digital signal." : "Perluas penjualan digital (Tokopedia, Shopee) untuk meningkatkan sinyal digital.");
+    if (score >= 670) tips.push(lang==="en" ? "Your score is good! Maintain consistency and consider applying for a higher limit." : "Skor Anda sudah bagus! Pertahankan konsistensi dan pertimbangkan limit lebih tinggi.");
+    return tips[0] || (lang==="en" ? "Keep improving your business metrics for a better score." : "Terus tingkatkan metrik usaha Anda untuk skor yang lebih baik.");
+  };
+
+  try {
+    if (!azureAI) {
+      res.json({ success: true, reply: fallbackResponse(message, creditScore||500), source: "local" });
+      return;
+    }
+
+    const systemPrompt = lang === "en"
+      ? `You are ModalAI's friendly credit advisor helping Indonesian SME (UMKM) owners understand and improve their credit scores.\nThe user's profile:\n- Credit Score: ${creditScore || "unknown"}/850\n- Business Type: ${bizType || "unknown"}\n- On-Time Payment Rate: ${onTimePayment || "unknown"}%\n- Delivery Success Rate: ${deliveryRate || "unknown"}%\n- Digital Sales Ratio: ${digitalRatio || "unknown"}%\n- Monthly Revenue: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Monthly Expense: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n\nRespond helpfully, concisely (max 3 sentences), and in English. Give specific actionable advice based on their profile.`
+      : `Kamu adalah konsultan kredit ModalAI yang ramah, membantu pelaku UMKM Indonesia memahami dan meningkatkan skor kredit mereka.\nProfil pengguna:\n- Skor Kredit: ${creditScore || "belum diketahui"}/850\n- Jenis Usaha: ${bizType || "belum diketahui"}\n- Pembayaran Tepat Waktu: ${onTimePayment || "belum diketahui"}%\n- Tingkat Delivery: ${deliveryRate || "belum diketahui"}%\n- Rasio Digital: ${digitalRatio || "belum diketahui"}%\n- Pendapatan Bulanan: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Pengeluaran Bulanan: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n\nJawab dengan ramah, singkat (maks 3 kalimat), dalam Bahasa Indonesia. Berikan saran spesifik dan actionable berdasarkan profil mereka.`;
+
+    const response = await azureAI.chat.completions.create({
+      model: process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user",   content: message }
+      ],
+      max_tokens: 200,
+      temperature: 0.7,
+    });
+
+    const reply = response.choices[0]?.message?.content || fallbackResponse(message, creditScore||500);
+    res.json({ success: true, reply, source: "azure" });
+
+  } catch(e: any) {
+    console.error("Azure AI error:", e.message);
+    res.json({ success: true, reply: fallbackResponse(message, creditScore||500), source: "fallback" });
   }
 });
 
