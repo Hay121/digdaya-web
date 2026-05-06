@@ -2,6 +2,7 @@ import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import crypto from "crypto";
+import { TextAnalyticsClient, AzureKeyCredential } from "@azure/ai-text-analytics";
 import { AzureOpenAI } from "openai";
 import {
   Connection, Keypair, PublicKey,
@@ -21,16 +22,15 @@ let keypair:    Keypair    | null = null;
 let connection: Connection | null = null;
 
 // Azure OpenAI Client
-let azureAI: AzureOpenAI | null = null;
-function initAzureAI() {
-  const key      = process.env.AZURE_OPENAI_KEY;
-  const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-  const deploy   = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
-  if(!key || !endpoint) { console.warn("⚠️  Azure OpenAI not configured"); return; }
-  azureAI = new AzureOpenAI({ apiKey: key, endpoint, apiVersion: "2024-02-01", deployment: deploy });
-  console.log("✅ Azure OpenAI ready");
+let langClient: TextAnalyticsClient | null = null;
+function initAzureLanguage() {
+  const key      = process.env.AZURE_LANGUAGE_KEY;
+  const endpoint = process.env.AZURE_LANGUAGE_ENDPOINT;
+  if(!key || !endpoint) { console.warn("⚠️  Azure Language not configured"); return; }
+  langClient = new TextAnalyticsClient(endpoint, new AzureKeyCredential(key));
+  console.log("✅ Azure AI Language ready");
 }
-initAzureAI();
+initAzureLanguage();
 
 function initWallet(): void {
   const raw = process.env.WALLET_SECRET_JSON;
@@ -159,7 +159,7 @@ app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
       : `Kamu adalah konsultan kredit ModalAI yang ramah, membantu pelaku UMKM Indonesia memahami dan meningkatkan skor kredit mereka.\nProfil pengguna:\n- Skor Kredit: ${creditScore || "belum diketahui"}/850\n- Jenis Usaha: ${bizType || "belum diketahui"}\n- Pembayaran Tepat Waktu: ${onTimePayment || "belum diketahui"}%\n- Tingkat Delivery: ${deliveryRate || "belum diketahui"}%\n- Rasio Digital: ${digitalRatio || "belum diketahui"}%\n- Pendapatan Bulanan: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Pengeluaran Bulanan: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n\nJawab dengan ramah, singkat (maks 3 kalimat), dalam Bahasa Indonesia. Berikan saran spesifik dan actionable berdasarkan profil mereka.`;
 
     const response = await azureAI.chat.completions.create({
-      model: process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o",
+      model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user",   content: message }

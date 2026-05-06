@@ -3,6 +3,7 @@ import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { useEffect, useState, createContext, useCallback, useContext } from "react";
 import "../styles/globals.css";
+import AIChatWidget from "../components/AIChatWidget";
 
 type ToastType = "success"|"error"|"info"|"warning";
 type Toast     = { id:number; message:string; type:ToastType };
@@ -142,7 +143,8 @@ export default function App({ Component, pageProps }: AppProps) {
           <div key={fadeKey} className="page-wrap">
             <Component {...pageProps}/>
           </div>
-          <div style={{position:"fixed",bottom:24,right:24,zIndex:9999,display:"flex",flexDirection:"column",gap:8,maxWidth:340}}>
+          <AIChatWidget/>
+          <div style={{position:"fixed",bottom:96,right:24,zIndex:9998,display:"flex",flexDirection:"column",gap:8,maxWidth:340}}>
             {toasts.map(toast=>(
               <div key={toast.id} className="toast-item" onClick={()=>setToasts(ts=>ts.filter(x=>x.id!==toast.id))} style={{background:TOAST_CFG[toast.type].bg,color:"#fff",padding:"12px 18px",borderRadius:11,fontSize:13,fontWeight:600,boxShadow:"0 8px 32px rgba(0,0,0,.4)",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
                 <span style={{fontSize:16,flexShrink:0}}>{TOAST_CFG[toast.type].icon}</span>
