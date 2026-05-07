@@ -17,6 +17,7 @@ export default function AIChatWidget() {
   const [mounted,  setMounted]  = useState(false);
   const [unread,   setUnread]   = useState(1);
   const [profile,  setProfile]  = useState<any>({});
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(()=>{
@@ -26,6 +27,7 @@ export default function AIChatWidget() {
     const score = localStorage.getItem("digdaya_score");
     const p: any = {};
     if(user)  p.name  = JSON.parse(user).name;
+    if(user)  p.entityId = JSON.parse(user).entityId || JSON.parse(user).name;
     if(umkm)  Object.assign(p, JSON.parse(umkm));
     if(score) p.score = parseInt(score);
     setProfile(p);
@@ -33,13 +35,40 @@ export default function AIChatWidget() {
     const greeting: Msg = {
       role: "ai",
       text: lang==="id"
-        ? `Halo${p.name?" "+p.name:""}! 👋 Saya **AI Advisor** ModalAI powered by **Azure AI Language**. Tanya apapun tentang kredit usaha Anda!`
-        : `Hi${p.name?" "+p.name:""}! 👋 I'm **AI Advisor** powered by **Azure AI Language**. Ask me anything about your business credit!`,
+        ? `Halo${p.name?" "+p.name:""}! 👋 Saya **AI Advisor** ModalAI powered by **Azure AI**. Tanya apapun tentang kredit usaha Anda!`
+        : `Hi${p.name?" "+p.name:""}! 👋 I'm **AI Advisor** powered by **Azure AI**. Ask me anything about your business credit!`,
       time: new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),
       source: "system",
     };
     setMessages([greeting]);
   },[]);
+
+  // Load chat history from Azure Blob Storage when widget opens
+  useEffect(()=>{
+    if(open && !historyLoaded && profile.entityId) {
+      loadHistory();
+    }
+  },[open, profile.entityId]);
+
+  const loadHistory = async () => {
+    try {
+      const res = await fetch(`${NGROK_URL}/api/v1/chat-history/${encodeURIComponent(profile.entityId)}`, {
+        headers: { "ngrok-skip-browser-warning":"true" },
+      });
+      const data = await res.json();
+      if(data.success && data.messages && data.messages.length > 0) {
+        const restored: Msg[] = data.messages.map((m: any) => ({
+          role: m.role === "assistant" ? "ai" : m.role,
+          text: m.content || m.text,
+          source: m.source,
+          time: m.time ? new Date(m.time).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}) : "",
+        }));
+        // Prepend greeting then restored messages
+        setMessages(prev => [...prev, ...restored]);
+      }
+    } catch {}
+    setHistoryLoaded(true);
+  };
 
   useEffect(()=>{
     if(open){ setUnread(0); setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100); }
@@ -61,6 +90,7 @@ export default function AIChatWidget() {
         headers:{"Content-Type":"application/json","ngrok-skip-browser-warning":"true"},
         body:JSON.stringify({
           message: msg, lang,
+          entityId:       profile.entityId,
           creditScore:    profile.score,
           bizType:        profile.bizType,
           onTimePayment:  profile.onTimePayment,
@@ -86,6 +116,26 @@ export default function AIChatWidget() {
     setLoading(false);
   };
 
+  const clearHistory = async () => {
+    if(!profile.entityId) return;
+    try {
+      await fetch(`${NGROK_URL}/api/v1/chat-history/${encodeURIComponent(profile.entityId)}`, {
+        method: "DELETE",
+        headers: { "ngrok-skip-browser-warning":"true" },
+      });
+    } catch {}
+    // Reset to just greeting
+    const greeting: Msg = {
+      role: "ai",
+      text: lang==="id"
+        ? `Halo${profile.name?" "+profile.name:""}! 👋 Riwayat chat dihapus. Ada yang bisa saya bantu?`
+        : `Hi${profile.name?" "+profile.name:""}! 👋 Chat history cleared. How can I help you?`,
+      time: new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}),
+      source: "system",
+    };
+    setMessages([greeting]);
+  };
+
   const sentimentColor = (s?:string) => s==="positive"?"#05A66B":s==="negative"?"#EF4444":"#F59E0B";
   const sentimentLabel = (s?:string) => s==="positive"?"😊":s==="negative"?"😟":"😐";
   const suggestions = lang==="id"?SUGGESTIONS_ID:SUGGESTIONS_EN;
@@ -107,7 +157,7 @@ export default function AIChatWidget() {
         @keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
         @keyframes dot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
         .ai-widget{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
-        .ai-panel{animation:slideUp .3s cubic-bezier(.34,1.56,.64,1) forwards;width:380px;height:560px;display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.5);overflow:hidden}
+        .ai-panel{animation:slideUp .3s cubic-bezier(.34,1.56,.64,1) forwards;width:380px;max-height:calc(100vh - 120px);height:520px;display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.5);overflow:hidden}
         .ai-fab{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#1A56DB,#05A66B);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(26,86,219,.4);transition:all .2s;position:relative;animation:bounce 3s ease infinite}
         .ai-fab:hover{transform:scale(1.1);box-shadow:0 12px 32px rgba(26,86,219,.5)}
         .msg-bubble-ai{background:var(--card);border:1px solid var(--border);border-radius:16px 16px 16px 4px;padding:12px 14px;max-width:85%;font-size:13px;line-height:1.65;color:var(--text1)}
@@ -122,35 +172,44 @@ export default function AIChatWidget() {
         .typing-d{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:dot 1.2s infinite;display:inline-block;margin:0 2px}
         .typing-d:nth-child(2){animation-delay:.2s}
         .typing-d:nth-child(3){animation-delay:.4s}
+        .clear-btn{background:none;border:none;cursor:pointer;color:var(--text4);font-size:11px;padding:4px 8px;border-radius:6px;transition:all .2s;font-family:var(--font)}
+        .clear-btn:hover{color:#EF4444;background:rgba(239,68,68,.08)}
+        @media(max-width:480px){.ai-panel{width:calc(100vw - 32px);height:calc(100vh - 100px);max-height:calc(100vh - 100px);right:0}}
       `}</style>
 
       <div className="ai-widget">
         {open&&(
           <div className="ai-panel">
             {/* Header */}
-            <div style={{padding:"14px 16px",borderBottom:"1px solid var(--border)",background:"linear-gradient(135deg,rgba(26,86,219,.1),rgba(5,166,107,.1))",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{padding:"14px 16px",borderBottom:"1px solid var(--border)",background:"linear-gradient(135deg,rgba(26,86,219,.1),rgba(5,166,107,.1))",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#1A56DB,#05A66B)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
                 <div>
                   <div style={{fontFamily:"var(--font-head)",fontWeight:800,fontSize:13,letterSpacing:-.2}}>AI Credit Advisor</div>
                   <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#05A66B",fontWeight:600}}>
                     <div style={{width:6,height:6,borderRadius:"50%",background:"#05A66B",boxShadow:"0 0 6px rgba(5,166,107,.6)"}}/>
-                    Azure AI Language
+                    Azure AI · Blob Storage
                   </div>
                 </div>
               </div>
-              <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text3)",fontSize:18,padding:4,borderRadius:8,transition:"all .2s"}}
-                onMouseEnter={e=>(e.currentTarget.style.background="var(--bg3)")}
-                onMouseLeave={e=>(e.currentTarget.style.background="none")}>✕</button>
+              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <button className="clear-btn" onClick={clearHistory} title={lang==="id"?"Hapus Riwayat":"Clear History"}>
+                  🗑️
+                </button>
+                <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text3)",fontSize:18,padding:4,borderRadius:8,transition:"all .2s"}}
+                  onMouseEnter={e=>(e.currentTarget.style.background="var(--bg3)")}
+                  onMouseLeave={e=>(e.currentTarget.style.background="none")}>✕</button>
+              </div>
             </div>
 
             {/* Messages */}
-            <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:12,minHeight:0}}>
               {messages.map((msg,i)=>(
                 <div key={i} style={{display:"flex",flexDirection:"column",alignItems:msg.role==="user"?"flex-end":"flex-start",gap:3}}>
                   {msg.role==="ai"&&msg.source&&msg.source!=="system"&&(
                     <div style={{fontSize:10,color:"var(--text4)",marginLeft:2,display:"flex",alignItems:"center",gap:4}}>
                       <span>AI Advisor</span>
+                      {msg.source==="azure"&&<span style={{background:"rgba(26,86,219,.1)",color:"#1A56DB",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:700}}>Azure</span>}
                       {msg.source==="azure-language"&&<span style={{background:"rgba(26,86,219,.1)",color:"#1A56DB",borderRadius:4,padding:"1px 5px",fontSize:9,fontWeight:700}}>Azure</span>}
                       {msg.sentiment&&<span style={{color:sentimentColor(msg.sentiment),fontSize:11}}>{sentimentLabel(msg.sentiment)}</span>}
                     </div>
@@ -173,14 +232,14 @@ export default function AIChatWidget() {
             </div>
 
             {/* Suggestions */}
-            <div style={{padding:"8px 12px",display:"flex",gap:6,overflowX:"auto",borderTop:"1px solid var(--border2)"}}>
+            <div style={{padding:"8px 12px",display:"flex",gap:6,overflowX:"auto",borderTop:"1px solid var(--border2)",flexShrink:0}}>
               {suggestions.slice(0,3).map((s,i)=>(
                 <button key={i} className="suggest-chip" onClick={()=>send(s)}>{s}</button>
               ))}
             </div>
 
             {/* Input */}
-            <div style={{padding:"12px 14px",borderTop:"1px solid var(--border)",display:"flex",gap:8,alignItems:"flex-end",background:"var(--bg3)"}}>
+            <div style={{padding:"12px 14px",borderTop:"1px solid var(--border)",display:"flex",gap:8,alignItems:"flex-end",background:"var(--bg3)",flexShrink:0}}>
               <textarea className="chat-inp" rows={1}
                 placeholder={lang==="id"?"Tanya tentang kredit usaha...":"Ask about your business credit..."}
                 value={input}

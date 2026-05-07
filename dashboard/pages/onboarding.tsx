@@ -1,7 +1,9 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useRouter } from "next/router";
 import NavBar from "../components/NavBar";
 import { LangContext, ToastContext } from "./_app";
+
+const NGROK_URL = "https://kortney-hamulate-annamarie.ngrok-free.dev";
 
 const fmtRp=(v:string)=>{const n=v.replace(/\D/g,"");return n?"Rp "+parseInt(n).toLocaleString("id-ID"):"";};
 const parseRp=(v:string)=>v.replace(/\D/g,"");
@@ -201,6 +203,43 @@ export default function Onboarding() {
   });
   const [nikError, setNikError] = useState("");
   const [nibError, setNibError] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDocumentScan = async (file: File, docType: string) => {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("docType", docType);
+      const res = await fetch(`${NGROK_URL}/api/v1/scan-document`, {
+        method: "POST",
+        headers: { "ngrok-skip-browser-warning": "true" },
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.extracted) {
+        setScanResult(data);
+        // Auto-fill form fields based on extracted data
+        if (docType === "NIB" && data.extracted.nib) {
+          u("nibInput", data.extracted.nib);
+          const h = await hashData(data.extracted.nib);
+          u("nibHash", h);
+          u("hasNIB", "yes");
+        }
+        if (data.extracted.bizName && !form.bizName) u("bizName", data.extracted.bizName);
+        if (data.extracted.address && !form.address) u("address", data.extracted.address);
+        addToast(lang==="id" ? `✅ Dokumen ${docType} berhasil dipindai! Data otomatis terisi.` : `✅ ${docType} document scanned! Data auto-filled.`, "success");
+      } else {
+        addToast(lang==="id" ? "Gagal membaca dokumen. Coba foto yang lebih jelas." : "Failed to read document. Try a clearer photo.", "error");
+      }
+    } catch(e) {
+      addToast(lang==="id" ? "Error: backend offline atau dokumen tidak valid" : "Error: backend offline or invalid document", "error");
+    }
+    setScanning(false);
+  };
 
   // Wilayah state
   const [provinces,  setProvinces]  = useState<{id:string;name:string}[]>([]);
@@ -516,6 +555,62 @@ export default function Onboarding() {
                     <div style={{marginTop:8,background:"rgba(2,195,154,.05)",border:"1px solid rgba(2,195,154,.1)",borderRadius:7,padding:"8px 10px"}}>
                       <div style={{fontSize:9,color:"var(--text4)",marginBottom:2,fontFamily:"var(--font-mono)",letterSpacing:1}}>SHA-256 HASH (yang tersimpan):</div>
                       <div style={{fontSize:9,color:"#02C39A",fontFamily:"var(--font-mono)",wordBreak:"break-all"}}>{form.nikHash}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Document AI Scanner */}
+                <div className="card" style={{padding:"16px 18px",marginBottom:12,border:"1.5px dashed rgba(2,128,144,.4)",background:"rgba(2,128,144,.03)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:13,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>
+                        🤖 {lang==="id"?"AI Document Scanner":"AI Document Scanner"}
+                        <span style={{background:"rgba(2,128,144,.12)",color:"#028090",fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,letterSpacing:.5}}>{lang==="id"?"AZURE AI":"AZURE AI"}</span>
+                      </div>
+                      <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5}}>{lang==="id"?"Upload foto NIB/SKDU dan AI akan mengekstrak data secara otomatis. Tidak perlu ketik manual!":"Upload NIB/SKDU photo and AI will extract data automatically. No manual typing needed!"}</div>
+                    </div>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept="image/*" style={{display:"none"}} onChange={(e)=>{
+                    const file = e.target.files?.[0];
+                    if(file) handleDocumentScan(file, "NIB");
+                    e.target.value = "";
+                  }}/>
+                  <div style={{display:"flex",gap:8}}>
+                    <button
+                      onClick={()=>fileInputRef.current?.click()}
+                      disabled={scanning}
+                      style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:scanning?"var(--card)":"linear-gradient(135deg,#028090,#02C39A)",border:scanning?"1px solid var(--border)":"none",borderRadius:9,color:scanning?"var(--text4)":"#fff",padding:"11px 16px",fontSize:12,fontWeight:600,cursor:scanning?"not-allowed":"pointer",fontFamily:"var(--font)",transition:"all .2s"}}
+                    >
+                      {scanning ? (
+                        <><span style={{display:"inline-block",width:14,height:14,border:"2px solid rgba(255,255,255,.2)",borderTopColor:"#028090",borderRadius:"50%",animation:"spin 1s linear infinite"}}/> {lang==="id"?"Memindai dokumen...":"Scanning document..."}</>
+                      ) : (
+                        <>{lang==="id"?"📷 Upload Foto NIB":"📷 Upload NIB Photo"}</>
+                      )}
+                    </button>
+                    <button
+                      onClick={()=>{
+                        const input = document.createElement("input");
+                        input.type = "file"; input.accept = "image/*";
+                        input.onchange = (e:any) => { const f = e.target.files?.[0]; if(f) handleDocumentScan(f, "SKDU"); };
+                        input.click();
+                      }}
+                      disabled={scanning}
+                      style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"var(--card)",border:"1px solid var(--border)",borderRadius:9,color:scanning?"var(--text5)":"var(--text2)",padding:"11px 16px",fontSize:12,fontWeight:500,cursor:scanning?"not-allowed":"pointer",fontFamily:"var(--font)",transition:"all .2s"}}
+                    >
+                      {lang==="id"?"📷 Upload Foto SKDU":"📷 Upload SKDU Photo"}
+                    </button>
+                  </div>
+                  {scanResult && (
+                    <div style={{marginTop:10,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.15)",borderRadius:8,padding:"10px 14px"}}>
+                      <div style={{fontSize:10,color:"#02C39A",fontWeight:600,marginBottom:6}}>✅ {lang==="id"?"Data berhasil diekstrak":"Data extracted successfully"} ({scanResult.docType})</div>
+                      <div style={{display:"grid",gap:3}}>
+                        {Object.entries(scanResult.extracted).filter(([_,v])=>v).map(([k,v],i)=>(
+                          <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:10}}>
+                            <span style={{color:"var(--text4)",textTransform:"capitalize"}}>{k.replace(/([A-Z])/g, ' $1')}</span>
+                            <span style={{color:"var(--text2)",fontWeight:500}}>{v as string}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

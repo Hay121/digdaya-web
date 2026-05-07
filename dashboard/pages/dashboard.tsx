@@ -6,8 +6,9 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 const gHash=()=>Array.from({length:16},()=>Math.floor(Math.random()*16).toString(16)).join("");
 const TX_TYPES=["Cashflow","Logistics","AgriSale","Repayment"];
 const makeTx=()=>({id:Math.random().toString(36).slice(2),entityId:"0x"+gHash().slice(0,8),type:TX_TYPES[Math.floor(Math.random()*TX_TYPES.length)],hash:gHash()+gHash(),status:Math.random()>.92?"fraud":Math.random()>.14?"verified":"pending",time:new Date().toLocaleTimeString("id-ID")});
-const foodData=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return {date:d.toLocaleDateString("id-ID",{day:"2-digit",month:"short"}),beras:13800+Math.floor(Math.random()*1400-200),cabai:34000+Math.floor(Math.random()*7000-2000)};});
+const STATIC_FOOD=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return {date:d.toLocaleDateString("id-ID",{day:"2-digit",month:"short"}),beras:13800+Math.floor(Math.random()*1400-200),cabai:34000+Math.floor(Math.random()*7000-2000)};});
 const sectorData=[{s:"Perdagangan",v:2840},{s:"Pertanian",v:1650},{s:"Jasa",v:2100},{s:"Manufaktur",v:980},{s:"Perikanan",v:760}];
+const NGROK_URL="https://kortney-hamulate-annamarie.ngrok-free.dev";
 export default function Dashboard() {
   const router=useRouter();
   const {addToast}=useContext(ToastContext);
@@ -22,6 +23,8 @@ export default function Dashboard() {
   const [loanStatus,setLoanStatus]=useState("");
   const [loanAmount,setLoanAmount]=useState(0);
   const [loanTenor,setLoanTenor]=useState(0);
+  const [foodData,setFoodData]=useState<any[]>(STATIC_FOOD);
+  const [commoditySummary,setCommoditySummary]=useState<any>(null);
   useEffect(()=>{
     setMounted(true);
     const u=localStorage.getItem("digdaya_user");
@@ -35,6 +38,24 @@ export default function Dashboard() {
     setLoanAmount(parseInt(localStorage.getItem("digdaya_loan_amount")||"0"));
     setLoanTenor(parseInt(localStorage.getItem("digdaya_tenor")||"0"));;
     setTxs(Array.from({length:8},makeTx));
+    // Fetch real commodity prices from backend
+    fetch(`${NGROK_URL}/api/v1/commodity-prices?days=14`,{headers:{"ngrok-skip-browser-warning":"true"}})
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.success&&data.commodities){
+          const beras=data.commodities.find((c:any)=>c.id==="beras_medium");
+          const cabai=data.commodities.find((c:any)=>c.id==="cabai_merah");
+          if(beras&&cabai){
+            const merged=beras.history.map((h:any,i:number)=>({
+              date:new Date(h.date).toLocaleDateString("id-ID",{day:"2-digit",month:"short"}),
+              beras:h.price,
+              cabai:cabai.history[i]?.price||0,
+            }));
+            setFoodData(merged);
+          }
+          setCommoditySummary(data.summary);
+        }
+      }).catch(()=>{});
   },[]);
   useEffect(()=>{
     if(!mounted)return;
@@ -142,8 +163,8 @@ export default function Dashboard() {
 
           <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr",gap:14,marginBottom:14}}>
             <div className="card">
-              <div className="stitle">Tren Harga Komoditas Pangan — 14 Hari</div>
-              <div style={{fontSize:10,color:"var(--text5)",marginBottom:12}}>Sumber: simulasi data pasar induk · digunakan sebagai faktor risiko sektoral dalam model AI</div>
+              <div className="stitle"><span className="dot"/> Tren Harga Komoditas Pangan — 14 Hari {commoditySummary&&<span style={{marginLeft:"auto",fontSize:9,background:commoditySummary.riskLevel==="high"?"rgba(239,68,68,.12)":commoditySummary.riskLevel==="medium"?"rgba(244,162,97,.12)":"rgba(2,195,154,.12)",color:commoditySummary.riskLevel==="high"?"#EF4444":commoditySummary.riskLevel==="medium"?"#F4A261":"#02C39A",borderRadius:5,padding:"2px 8px",fontWeight:600,letterSpacing:.3,fontFamily:"var(--font-mono)"}}>INFLASI {commoditySummary.riskLevel?.toUpperCase()}</span>}</div>
+              <div style={{fontSize:10,color:"var(--text5)",marginBottom:12}}>Sumber: {commoditySummary?"PIHPS API · data real-time":"simulasi data pasar induk"} · digunakan sebagai faktor risiko sektoral dalam model AI</div>
               <ResponsiveContainer width="100%" height={170}>
                 <AreaChart data={foodData}>
                   <defs>

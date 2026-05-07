@@ -32,6 +32,7 @@ export default function Report() {
   const [txHash,     setTxHash]     = useState("");
   const [maskedEntity, setMaskedEntity] = useState("");
   const [mounted,    setMounted]    = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(()=>{
     setMounted(true);
@@ -126,6 +127,36 @@ export default function Report() {
     setProcessing(false);
     setShowModal(false);
     addToast(lang==="id"?"Pengajuan berhasil dikirim! Menunggu persetujuan lender":"Application submitted! Awaiting lender approval","success");
+  };
+
+  const handleDownloadPDF = async () => {
+    setPdfLoading(true);
+    try {
+      const NGROK_URL = "https://kortney-hamulate-annamarie.ngrok-free.dev";
+      const res = await fetch(`${NGROK_URL}/api/v1/generate-report-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+        body: JSON.stringify({
+          user, umkm: data, score, txSig, txHash, txExplorer, maskedEntity,
+          loanAmount: loan, tenor, lang,
+        }),
+      });
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Digdaya_Credit_Report_${user.name || "User"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      addToast(lang==="id"?"Laporan PDF berhasil diunduh!":"PDF report downloaded successfully!", "success");
+    } catch(e) {
+      console.error("PDF download error:", e);
+      addToast(lang==="id"?"Gagal mengunduh PDF. Coba lagi.":"Failed to download PDF. Try again.", "error");
+    }
+    setPdfLoading(false);
   };
 
   const approvalLabels = [
@@ -415,6 +446,24 @@ export default function Report() {
                 ◈ {lang==="id"?"Verifikasi Transaksi di Solana Explorer ↗":"Verify Transaction on Solana Explorer ↗"}
               </a>
             )}
+          </div>
+
+          {/* PDF Download Button */}
+          <div style={{marginTop:14,display:"flex",gap:10}}>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:pdfLoading?"var(--card)":"linear-gradient(135deg,#028090,#02C39A)",border:pdfLoading?"1px solid var(--border)":"none",borderRadius:10,color:pdfLoading?"var(--text4)":"#fff",padding:"14px 20px",fontSize:13,fontWeight:600,cursor:pdfLoading?"not-allowed":"pointer",fontFamily:"var(--font)",transition:"all .2s"}}
+            >
+              {pdfLoading ? (
+                <><div className="spinner" style={{width:14,height:14}}/> {lang==="id"?"Menghasilkan PDF...":"Generating PDF..."}</>
+              ) : (
+                <>{lang==="id"?"📄 Download Laporan Kredit (PDF)":"📄 Download Credit Report (PDF)"}</>
+              )}
+            </button>
+            <button className="nbtn" onClick={()=>router.push("/dashboard")} style={{padding:"14px 20px"}}>
+              {lang==="id"?"← Dashboard":"← Dashboard"}
+            </button>
           </div>
         </div>
       </div>

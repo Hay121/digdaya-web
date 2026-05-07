@@ -80,6 +80,7 @@ export default function Advisor() {
         headers: { "Content-Type":"application/json", "ngrok-skip-browser-warning":"true" },
         body: JSON.stringify({
           message: msg,
+          entityId: user?.name || user?.entityId,
           creditScore: score,
           bizType: umkm?.bizType,
           onTimePayment: umkm?.onTimePayment,

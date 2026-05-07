@@ -2,8 +2,13 @@ import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import crypto from "crypto";
+import path from "path";
+import fs from "fs";
 import { TextAnalyticsClient, AzureKeyCredential } from "@azure/ai-text-analytics";
-import { AzureOpenAI } from "openai";
+import OpenAI from "openai";
+import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
+import multer from "multer";
+import PDFDocument from "pdfkit";
 import {
   Connection, Keypair, PublicKey,
   Transaction, TransactionInstruction, sendAndConfirmTransaction
@@ -21,16 +26,132 @@ const MEMO_PROGRAM = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
 let keypair:    Keypair    | null = null;
 let connection: Connection | null = null;
 
-// Azure OpenAI Client
+// ── Azure AI Language Client (Sentiment Analysis) ─────────────────────────
 let langClient: TextAnalyticsClient | null = null;
 function initAzureLanguage() {
   const key      = process.env.AZURE_LANGUAGE_KEY;
   const endpoint = process.env.AZURE_LANGUAGE_ENDPOINT;
   if(!key || !endpoint) { console.warn("⚠️  Azure Language not configured"); return; }
   langClient = new TextAnalyticsClient(endpoint, new AzureKeyCredential(key));
-  console.log("✅ Azure AI Language ready");
+  console.log("✅ Azure AI Language ready (sentiment analysis)");
 }
 initAzureLanguage();
+
+// ── OpenAI Client (Chat AI Brain) ──────────────────────────────────────────
+// Uses standard OpenAI API (global, no region restrictions)
+// Falls back to Azure OpenAI if OPENAI_API_KEY not set but Azure keys present
+let openaiClient: OpenAI | null = null;
+let aiSource = "none";
+
+function initOpenAI() {
+  // Priority 1: Standard OpenAI API (works globally without region issues)
+  const standardKey = process.env.OPENAI_API_KEY;
+  if (standardKey) {
+    openaiClient = new OpenAI({ apiKey: standardKey });
+    aiSource = "openai";
+    console.log("✅ OpenAI ready (standard API)");
+    return;
+  }
+
+  // Priority 2: Azure OpenAI (may have region restrictions)
+  const azureKey      = process.env.AZURE_OPENAI_KEY;
+  const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const azureDeploy   = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
+  if (azureKey && azureEndpoint) {
+    openaiClient = new OpenAI({
+      apiKey:     azureKey,
+      baseURL:    `${azureEndpoint}openai/deployments/${azureDeploy}`,
+      defaultQuery: { "api-version": "2024-08-01-preview" },
+      defaultHeaders: { "api-key": azureKey },
+    });
+    aiSource = "azure-openai";
+    console.log("✅ Azure OpenAI ready (deployment:", azureDeploy, ")");
+    return;
+  }
+
+  console.warn("⚠️  No OpenAI/Azure OpenAI configured — using local fallback only");
+}
+initOpenAI();
+
+// ── Azure Blob Storage ───────────────────────────────────────────────────
+const CHAT_CONTAINER = "chat-history";
+let blobContainer: ContainerClient | null = null;
+
+async function initBlobStorage() {
+  const connStr = process.env.AZURE_STORAGE_CONNECTION;
+  if (!connStr) { console.warn("⚠️  Azure Blob Storage not configured"); return; }
+  try {
+    const blobService = BlobServiceClient.fromConnectionString(connStr);
+    blobContainer = blobService.getContainerClient(CHAT_CONTAINER);
+    await blobContainer.createIfNotExists({ access: undefined });
+    console.log("✅ Azure Blob Storage ready (container:", CHAT_CONTAINER, ")");
+  } catch (e: any) {
+    console.warn("⚠️  Azure Blob Storage init error:", e.message);
+  }
+}
+
+function hashEntityId(entityId: string): string {
+  return crypto.createHmac("sha256", CONFIG.PII_SALT).update(entityId).digest("hex").slice(0, 24);
+}
+
+async function loadChatHistory(entityId: string): Promise<any[]> {
+  if (!blobContainer) return [];
+  const blobName = `${hashEntityId(entityId)}.json`;
+  try {
+    const blob = blobContainer.getBlockBlobClient(blobName);
+    const exists = await blob.exists();
+    if (!exists) return [];
+    const downloaded = await blob.download(0);
+    const body = await streamToString(downloaded.readableStreamBody!);
+    return JSON.parse(body);
+  } catch { return []; }
+}
+
+async function saveChatHistory(entityId: string, messages: any[]): Promise<void> {
+  if (!blobContainer) return;
+  const blobName = `${hashEntityId(entityId)}.json`;
+  try {
+    const blob = blobContainer.getBlockBlobClient(blobName);
+    const content = JSON.stringify(messages, null, 2);
+    await blob.upload(content, Buffer.byteLength(content), {
+      blobHTTPHeaders: { blobContentType: "application/json" },
+    });
+  } catch (e: any) {
+    console.error("Blob save error:", e.message);
+  }
+}
+
+async function streamToString(readable: NodeJS.ReadableStream): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of readable) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf-8");
+}
+
+// ── Azure AI Language: Sentiment Analysis ─────────────────────────────────
+async function analyzeSentiment(text: string, lang: string = "id"): Promise<{sentiment: string; confidence: number; keyPhrases: string[]}> {
+  const defaultResult = { sentiment: "neutral", confidence: 0, keyPhrases: [] as string[] };
+  if (!langClient) return defaultResult;
+  try {
+    const sentimentResults = await langClient.analyzeSentiment([text], lang === "en" ? "en" : "id");
+    const keyPhraseResults = await langClient.extractKeyPhrases([text], lang === "en" ? "en" : "id");
+
+    const sr = sentimentResults[0] as any;
+    const kr = keyPhraseResults[0] as any;
+
+    if (sr.error) return defaultResult;
+
+    const sentiment = sr.sentiment || "neutral";
+    const confidence = sr.confidenceScores?.[sentiment] || 0;
+    const keyPhrases = (!kr.error && kr.keyPhrases) ? kr.keyPhrases.slice(0, 5) : [];
+
+    return { sentiment, confidence, keyPhrases };
+  } catch (e: any) {
+    console.error("Sentiment analysis error:", e.message);
+    return defaultResult;
+  }
+}
 
 function initWallet(): void {
   const raw = process.env.WALLET_SECRET_JSON;
@@ -70,6 +191,9 @@ app.get("/health", (_req: Request, res: Response) => {
     status:       "ok",
     version:      "1.0.0",
     solana_ready: !!keypair,
+    ai_source:    aiSource,
+    azure_lang:   !!langClient,
+    blob_storage: !!blobContainer,
     snap_bi_ver:  "2.0",
   });
 });
@@ -135,7 +259,61 @@ app.post("/api/v1/credit-score", async (req: Request, res: Response) => {
   }
 });
 
-// ── AI Advisor Chat ──────────────────────────────────────────────────────
+// ── Sentiment Analysis Endpoint (Azure AI Language) ──────────────────────
+app.post("/api/v1/analyze-sentiment", async (req: Request, res: Response) => {
+  const { text, lang } = req.body;
+  if (!text) { res.status(400).json({ success: false, error: "Text required" }); return; }
+  try {
+    const result = await analyzeSentiment(text, lang || "id");
+    res.json({
+      success: true,
+      ...result,
+      service: langClient ? "azure-ai-language" : "unavailable",
+    });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── Chat History Endpoints (Azure Blob Storage) ──────────────────────────
+app.get("/api/v1/chat-history/:entityId", async (req: Request, res: Response) => {
+  const entityId = req.params.entityId as string;
+  if (!entityId) { res.status(400).json({ success: false, error: "Missing entityId" }); return; }
+  try {
+    const history = await loadChatHistory(entityId);
+    res.json({ success: true, messages: history, storage: blobContainer ? "azure-blob" : "unavailable" });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post("/api/v1/chat-history", async (req: Request, res: Response) => {
+  const { entityId, messages } = req.body;
+  if (!entityId || !messages) { res.status(400).json({ success: false, error: "Missing entityId or messages" }); return; }
+  try {
+    await saveChatHistory(entityId, messages);
+    res.json({ success: true, saved: messages.length, storage: blobContainer ? "azure-blob" : "unavailable" });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.delete("/api/v1/chat-history/:entityId", async (req: Request, res: Response) => {
+  const entityId = req.params.entityId as string;
+  if (!entityId) { res.status(400).json({ success: false, error: "Missing entityId" }); return; }
+  try {
+    if (blobContainer) {
+      const blobName = `${hashEntityId(entityId)}.json`;
+      const blob = blobContainer.getBlockBlobClient(blobName);
+      await blob.deleteIfExists();
+    }
+    res.json({ success: true, deleted: true });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── AI Advisor Chat (OpenAI + Azure AI Language Sentiment) ───────────────
 app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
   const { message, creditScore, bizType, onTimePayment, deliveryRate, digitalRatio, monthlyRevenue, monthlyExpense, lang } = req.body;
   if (!message) { res.status(400).json({ success: false, error: "Message required" }); return; }
@@ -148,18 +326,31 @@ app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
     return tips[0] || (lang==="en" ? "Keep improving your business metrics for a better score." : "Terus tingkatkan metrik usaha Anda untuk skor yang lebih baik.");
   };
 
+  // Run sentiment analysis on user message (Azure AI Language)
+  let sentiment: any = null;
   try {
-    if (!azureAI) {
-      res.json({ success: true, reply: fallbackResponse(message, creditScore||500), source: "local" });
+    sentiment = await analyzeSentiment(message, lang || "id");
+  } catch {}
+
+  try {
+    if (!openaiClient) {
+      // No AI configured — return local fallback
+      res.json({
+        success: true,
+        reply: fallbackResponse(message, creditScore||500),
+        source: "local",
+        sentiment: sentiment?.sentiment,
+        keyPhrases: sentiment?.keyPhrases,
+      });
       return;
     }
 
     const systemPrompt = lang === "en"
-      ? `You are ModalAI's friendly credit advisor helping Indonesian SME (UMKM) owners understand and improve their credit scores.\nThe user's profile:\n- Credit Score: ${creditScore || "unknown"}/850\n- Business Type: ${bizType || "unknown"}\n- On-Time Payment Rate: ${onTimePayment || "unknown"}%\n- Delivery Success Rate: ${deliveryRate || "unknown"}%\n- Digital Sales Ratio: ${digitalRatio || "unknown"}%\n- Monthly Revenue: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Monthly Expense: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n\nRespond helpfully, concisely (max 3 sentences), and in English. Give specific actionable advice based on their profile.`
-      : `Kamu adalah konsultan kredit ModalAI yang ramah, membantu pelaku UMKM Indonesia memahami dan meningkatkan skor kredit mereka.\nProfil pengguna:\n- Skor Kredit: ${creditScore || "belum diketahui"}/850\n- Jenis Usaha: ${bizType || "belum diketahui"}\n- Pembayaran Tepat Waktu: ${onTimePayment || "belum diketahui"}%\n- Tingkat Delivery: ${deliveryRate || "belum diketahui"}%\n- Rasio Digital: ${digitalRatio || "belum diketahui"}%\n- Pendapatan Bulanan: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Pengeluaran Bulanan: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n\nJawab dengan ramah, singkat (maks 3 kalimat), dalam Bahasa Indonesia. Berikan saran spesifik dan actionable berdasarkan profil mereka.`;
+      ? `You are ModalAI's friendly credit advisor helping Indonesian SME (UMKM) owners understand and improve their credit scores.\nThe user's profile:\n- Credit Score: ${creditScore || "unknown"}/850\n- Business Type: ${bizType || "unknown"}\n- On-Time Payment Rate: ${onTimePayment || "unknown"}%\n- Delivery Success Rate: ${deliveryRate || "unknown"}%\n- Digital Sales Ratio: ${digitalRatio || "unknown"}%\n- Monthly Revenue: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Monthly Expense: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n${sentiment ? `\n[Sentiment Analysis of user message: ${sentiment.sentiment} (${(sentiment.confidence*100).toFixed(0)}% confidence), Key topics: ${sentiment.keyPhrases?.join(", ") || "none"}]` : ""}\n\nRespond helpfully, concisely (max 3 sentences), and in English. Give specific actionable advice based on their profile.`
+      : `Kamu adalah konsultan kredit ModalAI yang ramah, membantu pelaku UMKM Indonesia memahami dan meningkatkan skor kredit mereka.\nProfil pengguna:\n- Skor Kredit: ${creditScore || "belum diketahui"}/850\n- Jenis Usaha: ${bizType || "belum diketahui"}\n- Pembayaran Tepat Waktu: ${onTimePayment || "belum diketahui"}%\n- Tingkat Delivery: ${deliveryRate || "belum diketahui"}%\n- Rasio Digital: ${digitalRatio || "belum diketahui"}%\n- Pendapatan Bulanan: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Pengeluaran Bulanan: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n${sentiment ? `\n[Analisis Sentimen pesan user: ${sentiment.sentiment} (keyakinan ${(sentiment.confidence*100).toFixed(0)}%), Topik kunci: ${sentiment.keyPhrases?.join(", ") || "tidak ada"}]` : ""}\n\nJawab dengan ramah, singkat (maks 3 kalimat), dalam Bahasa Indonesia. Berikan saran spesifik dan actionable berdasarkan profil mereka.`;
 
-    const response = await azureAI.chat.completions.create({
-      model: "gpt-4o",
+    const response = await openaiClient.chat.completions.create({
+      model: aiSource === "azure-openai" ? (process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o") : "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user",   content: message }
@@ -169,11 +360,329 @@ app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
     });
 
     const reply = response.choices[0]?.message?.content || fallbackResponse(message, creditScore||500);
-    res.json({ success: true, reply, source: "azure" });
+
+    // Auto-save conversation to Azure Blob Storage
+    if (req.body.entityId) {
+      try {
+        const history = await loadChatHistory(req.body.entityId);
+        history.push(
+          { role: "user", content: message, time: new Date().toISOString(), sentiment: sentiment?.sentiment },
+          { role: "assistant", content: reply, source: aiSource, time: new Date().toISOString() }
+        );
+        // Keep last 100 messages per user
+        const trimmed = history.slice(-100);
+        await saveChatHistory(req.body.entityId, trimmed);
+      } catch {}
+    }
+
+    res.json({
+      success: true,
+      reply,
+      source: aiSource,
+      sentiment: sentiment?.sentiment,
+      keyPhrases: sentiment?.keyPhrases,
+    });
 
   } catch(e: any) {
-    console.error("Azure AI error:", e.message);
-    res.json({ success: true, reply: fallbackResponse(message, creditScore||500), source: "fallback" });
+    console.error("AI advisor error:", e.message);
+    res.json({
+      success: true,
+      reply: fallbackResponse(message, creditScore||500),
+      source: "fallback",
+      sentiment: sentiment?.sentiment,
+      keyPhrases: sentiment?.keyPhrases,
+    });
+  }
+});
+
+// ── Feature C: Document AI Scanner (OpenAI Vision) ──────────────────────
+const uploadDir = path.join(__dirname, "..", "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const upload = multer({ dest: uploadDir, limits: { fileSize: 10 * 1024 * 1024 } });
+
+app.post("/api/v1/scan-document", upload.single("file"), async (req: Request, res: Response) => {
+  const file = (req as any).file;
+  const docType = req.body.docType || "NIB"; // NIB, SKDU, KTP
+
+  if (!file) { res.status(400).json({ success: false, error: "No file uploaded" }); return; }
+
+  try {
+    if (!openaiClient) {
+      // Cleanup file
+      fs.unlinkSync(file.path);
+      res.status(503).json({ success: false, error: "AI not configured for document scanning" });
+      return;
+    }
+
+    // Read file as base64
+    const fileBuffer = fs.readFileSync(file.path);
+    const base64Image = fileBuffer.toString("base64");
+    const mimeType = file.mimetype || "image/jpeg";
+
+    const prompt = docType === "NIB"
+      ? `Analyze this Indonesian NIB (Nomor Induk Berusaha) document image. Extract the following fields if visible:\n- NIB Number (13 digits)\n- Business Name\n- Business Type/KBLI\n- Owner Name\n- Address\n- Issue Date\n\nReturn ONLY a JSON object with these fields: { "nib": "", "bizName": "", "bizType": "", "ownerName": "", "address": "", "issueDate": "" }. Use empty string for fields not found.`
+      : docType === "SKDU"
+      ? `Analyze this Indonesian SKDU (Surat Keterangan Domisili Usaha) document image. Extract:\n- Document Number\n- Business Name\n- Owner Name\n- Business Address\n- Village/Kelurahan\n- District/Kecamatan\n- Issue Date\n\nReturn ONLY a JSON object: { "docNumber": "", "bizName": "", "ownerName": "", "address": "", "village": "", "district": "", "issueDate": "" }`
+      : `Analyze this Indonesian KTP (ID card) image. Extract:\n- NIK (16 digits)\n- Full Name\n- Place/Date of Birth\n- Address\n- RT/RW\n- Village\n- District\n\nReturn ONLY a JSON object: { "nik": "", "name": "", "birthPlaceDate": "", "address": "", "rtRw": "", "village": "", "district": "" }`;
+
+    const response = await openaiClient.chat.completions.create({
+      model: aiSource === "azure-openai" ? (process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o") : "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: "high" } }
+          ],
+        }
+      ],
+      max_tokens: 500,
+      temperature: 0.1,
+    });
+
+    // Cleanup uploaded file
+    fs.unlinkSync(file.path);
+
+    const content = response.choices[0]?.message?.content || "{}";
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const extracted = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+    res.json({
+      success: true,
+      docType,
+      extracted,
+      source: aiSource,
+      raw: content,
+    });
+
+  } catch (e: any) {
+    // Cleanup on error
+    try { fs.unlinkSync(file.path); } catch {}
+    console.error("Document scan error:", e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── Feature D: Commodity Price Data (PIHPS-inspired) ────────────────────
+const COMMODITIES = [
+  { id: "beras_medium", name: "Beras Medium", unit: "kg", basePrice: 13500, category: "Beras" },
+  { id: "beras_premium", name: "Beras Premium", unit: "kg", basePrice: 15200, category: "Beras" },
+  { id: "gula_pasir", name: "Gula Pasir", unit: "kg", basePrice: 17800, category: "Gula" },
+  { id: "minyak_goreng", name: "Minyak Goreng", unit: "liter", basePrice: 18500, category: "Minyak" },
+  { id: "daging_sapi", name: "Daging Sapi", unit: "kg", basePrice: 135000, category: "Daging" },
+  { id: "daging_ayam", name: "Daging Ayam", unit: "kg", basePrice: 37500, category: "Daging" },
+  { id: "telur_ayam", name: "Telur Ayam", unit: "kg", basePrice: 28500, category: "Telur" },
+  { id: "cabai_merah", name: "Cabai Merah Keriting", unit: "kg", basePrice: 42000, category: "Cabai" },
+  { id: "cabai_rawit", name: "Cabai Rawit Merah", unit: "kg", basePrice: 48000, category: "Cabai" },
+  { id: "bawang_merah", name: "Bawang Merah", unit: "kg", basePrice: 38000, category: "Bumbu" },
+  { id: "bawang_putih", name: "Bawang Putih", unit: "kg", basePrice: 42000, category: "Bumbu" },
+  { id: "kedelai", name: "Kedelai Impor", unit: "kg", basePrice: 12500, category: "Kacang" },
+];
+
+function generateCommodityData(days: number = 30) {
+  const now = new Date();
+  return COMMODITIES.map(c => {
+    const history = Array.from({ length: days }, (_, i) => {
+      const date = new Date(now);
+      date.setDate(date.getDate() - (days - 1 - i));
+      // Simulate realistic price movements with seasonal patterns
+      const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
+      const seasonal = Math.sin(dayOfYear / 365 * Math.PI * 2) * 0.05; // 5% seasonal
+      const trend = (i / days) * 0.02; // slight uptrend
+      const noise = (Math.random() - 0.5) * 0.08; // 8% random noise
+      const factor = 1 + seasonal + trend + noise;
+      const price = Math.round(c.basePrice * factor);
+      return {
+        date: date.toISOString().split("T")[0],
+        price,
+        change: i > 0 ? 0 : 0, // will be calculated
+      };
+    });
+    // Calculate daily changes
+    for (let i = 1; i < history.length; i++) {
+      history[i].change = Number(((history[i].price - history[i - 1].price) / history[i - 1].price * 100).toFixed(2));
+    }
+    const latest = history[history.length - 1].price;
+    const weekAgo = history[Math.max(0, history.length - 8)]?.price || latest;
+    const monthAgo = history[0].price;
+    return {
+      ...c,
+      currentPrice: latest,
+      weeklyChange: Number(((latest - weekAgo) / weekAgo * 100).toFixed(2)),
+      monthlyChange: Number(((latest - monthAgo) / monthAgo * 100).toFixed(2)),
+      history,
+      inflationRisk: Math.abs(((latest - monthAgo) / monthAgo * 100)) > 10 ? "high" : Math.abs(((latest - monthAgo) / monthAgo * 100)) > 5 ? "medium" : "low",
+    };
+  });
+}
+
+app.get("/api/v1/commodity-prices", (_req: Request, res: Response) => {
+  const days = parseInt((_req.query.days as string) || "30");
+  const data = generateCommodityData(Math.min(days, 90));
+  const avgInflation = data.reduce((sum, c) => sum + c.monthlyChange, 0) / data.length;
+  res.json({
+    success: true,
+    source: "pihps-simulated",
+    updated: new Date().toISOString(),
+    commodities: data,
+    summary: {
+      totalItems: data.length,
+      avgMonthlyInflation: Number(avgInflation.toFixed(2)),
+      highRiskItems: data.filter(c => c.inflationRisk === "high").map(c => c.name),
+      riskLevel: avgInflation > 5 ? "high" : avgInflation > 2 ? "medium" : "low",
+    },
+  });
+});
+
+// ── Feature E: PDF Credit Report Export ──────────────────────────────────
+app.post("/api/v1/generate-report-pdf", async (req: Request, res: Response) => {
+  const { user, umkm, score, txSig, txHash, txExplorer, maskedEntity, loanAmount, tenor, lang } = req.body;
+  if (!user || !score) { res.status(400).json({ success: false, error: "Missing user or score data" }); return; }
+
+  try {
+    const doc = new PDFDocument({ size: "A4", margin: 50, bufferPages: true });
+    const chunks: Buffer[] = [];
+
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="Digdaya_Credit_Report_${user.name || "User"}.pdf"`);
+      res.send(pdfBuffer);
+    });
+
+    const isId = lang !== "en";
+    const sc = score >= 740 ? "Excellent" : score >= 670 ? "Good" : score >= 580 ? "Fair" : "Poor";
+    const maxLoan = score >= 740 ? 150000000 : score >= 670 ? 75000000 : score >= 580 ? 25000000 : score >= 520 ? 10000000 : 0;
+
+    // ── Header ──
+    doc.rect(0, 0, 595.28, 100).fill("#0A1628");
+    doc.fontSize(24).fill("#02C39A").text("DIGDAYA", 50, 30, { continued: true })
+       .fontSize(10).fill("#94A3B8").text("  Credit Intelligence Report", { baseline: "middle" });
+    doc.fontSize(8).fill("#64748B").text("Powered by AI · Solana Blockchain · Azure Cloud", 50, 60);
+    doc.fontSize(8).fill("#475569").text(`Generated: ${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`, 50, 75);
+
+    doc.moveDown(3);
+
+    // ── Borrower Info ──
+    doc.fontSize(14).fill("#1E293B").text(isId ? "Profil Peminjam" : "Borrower Profile", 50, 120);
+    doc.moveTo(50, 138).lineTo(545, 138).stroke("#E2E8F0");
+    doc.moveDown(0.5);
+
+    const infoY = 148;
+    const info = [
+      [isId ? "Nama" : "Name", user.name || "-"],
+      [isId ? "Usaha" : "Business", umkm?.bizName || "-"],
+      [isId ? "Jenis" : "Type", umkm?.bizType || "-"],
+      [isId ? "Lokasi" : "Location", [umkm?.cityName, umkm?.provinceName].filter(Boolean).join(", ") || "-"],
+      [isId ? "Pendapatan/Bulan" : "Revenue/Month", umkm?.monthlyRevenue ? `Rp ${parseInt(umkm.monthlyRevenue).toLocaleString("id-ID")}` : "-"],
+      [isId ? "Pengeluaran/Bulan" : "Expenses/Month", umkm?.monthlyExpense ? `Rp ${parseInt(umkm.monthlyExpense).toLocaleString("id-ID")}` : "-"],
+    ];
+    info.forEach(([k, v], i) => {
+      const y = infoY + i * 18;
+      doc.fontSize(9).fill("#64748B").text(k as string, 60, y, { width: 140 });
+      doc.fontSize(9).fill("#1E293B").text(v as string, 200, y, { width: 340 });
+    });
+
+    // ── Credit Score ──
+    const scoreY = infoY + info.length * 18 + 20;
+    doc.fontSize(14).fill("#1E293B").text(isId ? "Skor Kredit" : "Credit Score", 50, scoreY);
+    doc.moveTo(50, scoreY + 18).lineTo(545, scoreY + 18).stroke("#E2E8F0");
+
+    // Score display
+    const scoreBoxY = scoreY + 30;
+    const scoreColor = score >= 740 ? "#02C39A" : score >= 670 ? "#028090" : score >= 580 ? "#F4A261" : "#EF4444";
+    doc.roundedRect(60, scoreBoxY, 120, 80, 10).fill(scoreColor);
+    doc.fontSize(36).fill("#FFFFFF").text(score.toString(), 60, scoreBoxY + 12, { width: 120, align: "center" });
+    doc.fontSize(10).fill("#FFFFFF").text(sc, 60, scoreBoxY + 55, { width: 120, align: "center" });
+
+    // Score bar
+    doc.fontSize(9).fill("#64748B").text(isId ? "Rentang Skor: 300 — 850" : "Score Range: 300 — 850", 200, scoreBoxY + 5);
+    doc.rect(200, scoreBoxY + 22, 330, 8).fill("#E2E8F0");
+    const barWidth = Math.max(5, ((score - 300) / 550) * 330);
+    doc.rect(200, scoreBoxY + 22, barWidth, 8).fill(scoreColor);
+
+    // Score breakdown
+    const metrics = [
+      [isId ? "Bayar Tepat Waktu" : "On-Time Payment", `${umkm?.onTimePayment || 0}%`],
+      [isId ? "Sukses Delivery" : "Delivery Rate", `${umkm?.deliveryRate || 0}%`],
+      [isId ? "Rasio Digital" : "Digital Ratio", `${umkm?.digitalRatio || 0}%`],
+      [isId ? "Plafon Maksimum" : "Max Credit Limit", `Rp ${maxLoan.toLocaleString("id-ID")}`],
+    ];
+    metrics.forEach(([k, v], i) => {
+      const y = scoreBoxY + 42 + i * 16;
+      doc.fontSize(9).fill("#64748B").text(k as string, 200, y, { width: 160 });
+      doc.fontSize(9).fill("#1E293B").text(v as string, 380, y, { width: 150 });
+    });
+
+    // ── Loan Application ──
+    if (loanAmount && loanAmount > 0) {
+      const loanY = scoreBoxY + 130;
+      doc.fontSize(14).fill("#1E293B").text(isId ? "Detail Pengajuan Kredit" : "Credit Application Details", 50, loanY);
+      doc.moveTo(50, loanY + 18).lineTo(545, loanY + 18).stroke("#E2E8F0");
+      const loanInfo = [
+        [isId ? "Nominal Pinjaman" : "Loan Amount", `Rp ${parseInt(loanAmount).toLocaleString("id-ID")}`],
+        [isId ? "Tenor" : "Tenor", `${tenor || 12} ${isId ? "bulan" : "months"}`],
+      ];
+      loanInfo.forEach(([k, v], i) => {
+        doc.fontSize(9).fill("#64748B").text(k as string, 60, loanY + 28 + i * 18, { width: 160 });
+        doc.fontSize(9).fill("#1E293B").text(v as string, 220, loanY + 28 + i * 18, { width: 300 });
+      });
+    }
+
+    // ── AI Recommendations ──
+    doc.addPage();
+    doc.rect(0, 0, 595.28, 50).fill("#0A1628");
+    doc.fontSize(14).fill("#02C39A").text(isId ? "Rekomendasi AI" : "AI Recommendations", 50, 18);
+
+    const recommendations = [
+      { title: isId ? "Perluas Channel Digital" : "Expand Digital Channels", desc: isId ? "Tokopedia, Shopee, atau GoFood meningkatkan sinyal digital +15-25 poin pada model AI." : "Tokopedia, Shopee, or GoFood increases digital signal +15-25 points.", impact: "+15-25" },
+      { title: isId ? "Konsistensi Pembayaran" : "Payment Consistency", desc: isId ? "On-time payment >90% memberikan dampak terbesar pada behavioral scoring." : "On-time payment >90% has biggest behavioral impact.", impact: "+20-30" },
+      { title: isId ? "Lengkapi Dokumen" : "Complete Documents", desc: isId ? "SKDU dari kelurahan menambah kepercayaan lender dan skor +12 poin." : "SKDU from local office adds lender trust +12 points.", impact: "+12" },
+      { title: isId ? "Diversifikasi Pelanggan" : "Customer Diversification", desc: isId ? "Pelanggan unik >50/bulan menunjukkan pasar yang stabil dan mengurangi risiko." : "Unique customers >50/month shows stable market.", impact: "+10-20" },
+    ];
+
+    recommendations.forEach((r, i) => {
+      const y = 70 + i * 65;
+      doc.roundedRect(50, y, 495, 55, 6).fill("#F8FAFC").stroke("#E2E8F0");
+      doc.fontSize(11).fill("#1E293B").text(r.title, 65, y + 10, { width: 350 });
+      doc.fontSize(8).fill("#64748B").text(r.desc, 65, y + 26, { width: 380 });
+      doc.roundedRect(460, y + 12, 70, 24, 4).fill("#02C39A");
+      doc.fontSize(10).fill("#FFFFFF").text(r.impact, 460, y + 17, { width: 70, align: "center" });
+    });
+
+    // ── Blockchain Proof ──
+    const blockY = 70 + recommendations.length * 65 + 20;
+    doc.fontSize(14).fill("#1E293B").text(isId ? "Bukti Blockchain" : "Blockchain Proof", 50, blockY);
+    doc.moveTo(50, blockY + 18).lineTo(545, blockY + 18).stroke("#E2E8F0");
+
+    const blockInfo = [
+      ["Program ID", "7L1FRY6iPwCYoppBWEdTzMh1EsyKwubQc1U1YXnTLUeE"],
+      ["Network", "Solana Devnet"],
+      ["TX Signature", txSig || "—"],
+      ["TX Hash", txHash || "—"],
+      ["Masked Entity", maskedEntity || "—"],
+      ["Timestamp", new Date().toISOString()],
+    ];
+    blockInfo.forEach(([k, v], i) => {
+      const y = blockY + 28 + i * 16;
+      doc.fontSize(8).fill("#64748B").text(k as string, 60, y, { width: 100 });
+      doc.fontSize(7).fill("#475569").text((v as string).slice(0, 70), 165, y, { width: 370 });
+    });
+
+    // ── Footer ──
+    const footY = blockY + 28 + blockInfo.length * 16 + 30;
+    doc.moveTo(50, footY).lineTo(545, footY).stroke("#E2E8F0");
+    doc.fontSize(7).fill("#94A3B8").text("© 2026 Digdaya — AI-Powered Credit Intelligence for Indonesian SMEs", 50, footY + 8, { align: "center", width: 495 });
+    doc.fontSize(7).fill("#94A3B8").text("UU PDP Compliant · SNAP BI v2 · OJK Sandbox · Solana Devnet", 50, footY + 20, { align: "center", width: 495 });
+    doc.fontSize(6).fill("#CBD5E1").text(isId ? "Laporan ini dihasilkan secara otomatis oleh sistem AI Digdaya. Keputusan akhir kredit ada di tangan lender." : "This report is auto-generated by Digdaya AI. Final credit decision rests with the lender.", 50, footY + 36, { align: "center", width: 495 });
+
+    doc.end();
+
+  } catch (e: any) {
+    console.error("PDF generation error:", e.message);
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -182,9 +691,16 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 initWallet();
-app.listen(CONFIG.PORT, () => {
-  console.log(`🚀 Digdaya API running on port ${CONFIG.PORT}`);
-  console.log(`   Solana RPC  : ${CONFIG.RPC}`);
-  console.log(`   Program ID  : ${CONFIG.PROGRAM_ID}`);
-  console.log(`   SNAP BI ver : 2.0`);
+
+// Init blob storage then start server
+initBlobStorage().then(() => {
+  app.listen(CONFIG.PORT, () => {
+    console.log(`🚀 Digdaya API running on port ${CONFIG.PORT}`);
+    console.log(`   Solana RPC  : ${CONFIG.RPC}`);
+    console.log(`   Program ID  : ${CONFIG.PROGRAM_ID}`);
+    console.log(`   AI Brain    : ${aiSource}`);
+    console.log(`   Azure Lang  : ${langClient ? "connected" : "unavailable"}`);
+    console.log(`   Blob Storage: ${blobContainer ? "connected" : "unavailable"}`);
+    console.log(`   SNAP BI ver : 2.0`);
+  });
 });
