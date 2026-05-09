@@ -315,15 +315,41 @@ app.delete("/api/v1/chat-history/:entityId", async (req: Request, res: Response)
 
 // ── AI Advisor Chat (OpenAI + Azure AI Language Sentiment) ───────────────
 app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
-  const { message, creditScore, bizType, onTimePayment, deliveryRate, digitalRatio, monthlyRevenue, monthlyExpense, lang } = req.body;
+  const {
+    message, history: chatHistory,
+    creditScore, bizType, onTimePayment, deliveryRate, digitalRatio,
+    monthlyRevenue, monthlyExpense, lang, entityId
+  } = req.body;
   if (!message) { res.status(400).json({ success: false, error: "Message required" }); return; }
 
-  const fallbackResponse = (msg: string, score: number) => {
-    const tips: string[] = [];
-    if (score < 580) tips.push(lang==="en" ? "Focus on paying suppliers on time to boost your behavioral score." : "Fokus bayar supplier tepat waktu untuk meningkatkan skor behavioral.");
-    if (score < 670) tips.push(lang==="en" ? "Expand your digital sales channels (Tokopedia, Shopee) to increase digital signal." : "Perluas penjualan digital (Tokopedia, Shopee) untuk meningkatkan sinyal digital.");
-    if (score >= 670) tips.push(lang==="en" ? "Your score is good! Maintain consistency and consider applying for a higher limit." : "Skor Anda sudah bagus! Pertahankan konsistensi dan pertimbangkan limit lebih tinggi.");
-    return tips[0] || (lang==="en" ? "Keep improving your business metrics for a better score." : "Terus tingkatkan metrik usaha Anda untuk skor yang lebih baik.");
+  // Smart fallback: picks a contextually different tip each call
+  const fallbackResponse = (msg: string, score: number): string => {
+    const msgLower = msg.toLowerCase();
+    if (msgLower.includes("pinjam") || msgLower.includes("loan") || msgLower.includes("limit")) {
+      const max = score >= 740 ? "Rp 150 juta" : score >= 670 ? "Rp 75 juta" : score >= 580 ? "Rp 25 juta" : "Rp 10 juta";
+      return lang==="en"
+        ? `Based on your score of ${score}/850, your estimated maximum credit limit is ${max}. Improve your score to access higher limits.`
+        : `Berdasarkan skor ${score}/850, estimasi limit kredit Anda adalah ${max}. Tingkatkan skor untuk limit lebih tinggi.`;
+    }
+    if (msgLower.includes("digital") || msgLower.includes("online") || msgLower.includes("tokopedia") || msgLower.includes("shopee")) {
+      return lang==="en"
+        ? `Expanding to digital platforms like Tokopedia or Shopee can increase your digital signal score by 15–25 points. Start with one platform and build from there.`
+        : `Berjualan di Tokopedia atau Shopee bisa menambah sinyal digital Anda 15–25 poin. Mulai dari satu platform, bangun secara konsisten.`;
+    }
+    if (msgLower.includes("supplier") || msgLower.includes("bayar") || msgLower.includes("payment")) {
+      return lang==="en"
+        ? `On-time payment to suppliers is the #1 behavioral factor in your score. Even one late payment can drop your score by 20–40 points.`
+        : `Pembayaran tepat waktu ke supplier adalah faktor behavioral terbesar. Satu keterlambatan bisa menurunkan skor 20–40 poin.`;
+    }
+    if (score < 580) return lang==="en"
+      ? `Your score of ${score} is in the 'needs improvement' zone. Focus on: (1) paying suppliers on time, (2) increasing digital sales, (3) documenting all transactions consistently.`
+      : `Skor ${score} Anda berada di zona 'perlu ditingkatkan'. Fokus pada: (1) bayar supplier tepat waktu, (2) perluas penjualan digital, (3) dokumentasikan semua transaksi.`;
+    if (score < 670) return lang==="en"
+      ? `Your score of ${score} is fair. You're close to the 'Good' tier (670+). Boost your on-time payment rate to above 90% and expand digital channels.`
+      : `Skor ${score} Anda sudah lumayan. Anda dekat ke tier 'Baik' (670+). Tingkatkan pembayaran tepat waktu ke 90%+ dan perluas kanal digital.`;
+    return lang==="en"
+      ? `Your score of ${score} is great! Maintain payment consistency and consider applying for a higher credit limit to support business expansion.`
+      : `Skor ${score} Anda sudah bagus! Pertahankan konsistensi bayar dan pertimbangkan ajukan limit lebih tinggi untuk ekspansi usaha.`;
   };
 
   // Run sentiment analysis on user message (Azure AI Language)
@@ -332,9 +358,15 @@ app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
     sentiment = await analyzeSentiment(message, lang || "id");
   } catch {}
 
+  // Validate and clean incoming chat history
+  const validHistory: {role: string; content: string}[] = Array.isArray(chatHistory)
+    ? chatHistory
+        .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
+        .slice(-16) // keep last 16 messages (8 turns) for context without overflowing tokens
+    : [];
+
   try {
     if (!openaiClient) {
-      // No AI configured — return local fallback
       res.json({
         success: true,
         reply: fallbackResponse(message, creditScore||500),
@@ -345,33 +377,76 @@ app.post("/api/v1/ai-advisor", async (req: Request, res: Response) => {
       return;
     }
 
+    const netCashflow = parseInt(monthlyRevenue||"0") - parseInt(monthlyExpense||"0");
+    const cashflowHealth = netCashflow > 0 ? (lang==="en" ? "positive" : "positif") : (lang==="en" ? "negative (expenses exceed revenue)" : "negatif (pengeluaran melebihi pendapatan)");
+
     const systemPrompt = lang === "en"
-      ? `You are ModalAI's friendly credit advisor helping Indonesian SME (UMKM) owners understand and improve their credit scores.\nThe user's profile:\n- Credit Score: ${creditScore || "unknown"}/850\n- Business Type: ${bizType || "unknown"}\n- On-Time Payment Rate: ${onTimePayment || "unknown"}%\n- Delivery Success Rate: ${deliveryRate || "unknown"}%\n- Digital Sales Ratio: ${digitalRatio || "unknown"}%\n- Monthly Revenue: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Monthly Expense: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n${sentiment ? `\n[Sentiment Analysis of user message: ${sentiment.sentiment} (${(sentiment.confidence*100).toFixed(0)}% confidence), Key topics: ${sentiment.keyPhrases?.join(", ") || "none"}]` : ""}\n\nRespond helpfully, concisely (max 3 sentences), and in English. Give specific actionable advice based on their profile.`
-      : `Kamu adalah konsultan kredit ModalAI yang ramah, membantu pelaku UMKM Indonesia memahami dan meningkatkan skor kredit mereka.\nProfil pengguna:\n- Skor Kredit: ${creditScore || "belum diketahui"}/850\n- Jenis Usaha: ${bizType || "belum diketahui"}\n- Pembayaran Tepat Waktu: ${onTimePayment || "belum diketahui"}%\n- Tingkat Delivery: ${deliveryRate || "belum diketahui"}%\n- Rasio Digital: ${digitalRatio || "belum diketahui"}%\n- Pendapatan Bulanan: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}\n- Pengeluaran Bulanan: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}\n${sentiment ? `\n[Analisis Sentimen pesan user: ${sentiment.sentiment} (keyakinan ${(sentiment.confidence*100).toFixed(0)}%), Topik kunci: ${sentiment.keyPhrases?.join(", ") || "tidak ada"}]` : ""}\n\nJawab dengan ramah, singkat (maks 3 kalimat), dalam Bahasa Indonesia. Berikan saran spesifik dan actionable berdasarkan profil mereka.`;
+      ? `You are DigdayaAI, an expert credit advisor for Indonesian SME (UMKM) owners. You speak with warmth, clarity, and expertise.
+
+User Profile:
+- Credit Score: ${creditScore || "unknown"}/850 (${creditScore >= 740 ? "Excellent" : creditScore >= 670 ? "Good" : creditScore >= 580 ? "Fair" : "Needs Improvement"})
+- Business Type: ${bizType || "not specified"}
+- On-Time Payment Rate: ${onTimePayment || "unknown"}%
+- Delivery Success Rate: ${deliveryRate || "unknown"}%
+- Digital Sales Ratio: ${digitalRatio || "unknown"}%
+- Monthly Revenue: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}
+- Monthly Expenses: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}
+- Cashflow: ${cashflowHealth}
+${sentiment ? `\nUser sentiment: ${sentiment.sentiment} | Key topics: ${sentiment.keyPhrases?.join(", ") || "none"}` : ""}
+
+Rules:
+- Give personalized, specific advice referencing their actual data
+- NEVER repeat the same advice you gave in previous turns
+- Vary your response style: sometimes give numbered steps, sometimes ask a follow-up question, sometimes share a quick insight
+- Keep response to 2–4 sentences max
+- Always be encouraging and constructive`
+      : `Kamu adalah DigdayaAI, konsultan kredit ahli untuk pelaku UMKM Indonesia. Kamu berbicara dengan hangat, jelas, dan profesional.
+
+Profil Pengguna:
+- Skor Kredit: ${creditScore || "belum diketahui"}/850 (${creditScore >= 740 ? "Sangat Baik" : creditScore >= 670 ? "Baik" : creditScore >= 580 ? "Cukup" : "Perlu Ditingkatkan"})
+- Jenis Usaha: ${bizType || "belum ditentukan"}
+- Pembayaran Tepat Waktu: ${onTimePayment || "belum diketahui"}%
+- Tingkat Delivery: ${deliveryRate || "belum diketahui"}%
+- Rasio Digital: ${digitalRatio || "belum diketahui"}%
+- Pendapatan Bulanan: Rp ${parseInt(monthlyRevenue||"0").toLocaleString("id-ID")}
+- Pengeluaran Bulanan: Rp ${parseInt(monthlyExpense||"0").toLocaleString("id-ID")}
+- Arus Kas: ${cashflowHealth}
+${sentiment ? `\nSentimen pesan: ${sentiment.sentiment} | Topik kunci: ${sentiment.keyPhrases?.join(", ") || "tidak ada"}` : ""}
+
+Aturan:
+- Berikan saran personal dan spesifik merujuk data pengguna yang ada
+- JANGAN pernah mengulang saran yang sama dengan giliran sebelumnya
+- Variasikan gaya respons: kadang langkah bernomor, kadang tanya balik, kadang bagi insight singkat
+- Jawab maksimal 2–4 kalimat
+- Selalu bersikap mendorong dan konstruktif`;
+
+    // Build messages array with full conversation history for context
+    const openaiMessages: {role: "system"|"user"|"assistant"; content: string}[] = [
+      { role: "system", content: systemPrompt },
+      ...validHistory.map((m: any) => ({ role: m.role as "user"|"assistant", content: m.content })),
+      { role: "user", content: message },
+    ];
 
     const response = await openaiClient.chat.completions.create({
-      model: aiSource === "azure-openai" ? (process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o") : "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user",   content: message }
-      ],
-      max_tokens: 200,
-      temperature: 0.7,
+      model: aiSource === "azure-openai" ? (process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o") : "gpt-4o-mini",
+      messages: openaiMessages,
+      max_tokens: 400,
+      temperature: 0.85,
+      presence_penalty: 0.7,   // penalize topics already discussed
+      frequency_penalty: 0.4,  // penalize repeated phrases/words
     });
 
-    const reply = response.choices[0]?.message?.content || fallbackResponse(message, creditScore||500);
+    const reply = response.choices[0]?.message?.content?.trim() || fallbackResponse(message, creditScore||500);
 
     // Auto-save conversation to Azure Blob Storage
-    if (req.body.entityId) {
+    if (entityId) {
       try {
-        const history = await loadChatHistory(req.body.entityId);
-        history.push(
+        const blobHistory = await loadChatHistory(entityId);
+        blobHistory.push(
           { role: "user", content: message, time: new Date().toISOString(), sentiment: sentiment?.sentiment },
           { role: "assistant", content: reply, source: aiSource, time: new Date().toISOString() }
         );
-        // Keep last 100 messages per user
-        const trimmed = history.slice(-100);
-        await saveChatHistory(req.body.entityId, trimmed);
+        await saveChatHistory(entityId, blobHistory.slice(-100));
       } catch {}
     }
 
@@ -420,10 +495,48 @@ app.post("/api/v1/scan-document", upload.single("file"), async (req: Request, re
     const mimeType = file.mimetype || "image/jpeg";
 
     const prompt = docType === "NIB"
-      ? `Analyze this Indonesian NIB (Nomor Induk Berusaha) document image. Extract the following fields if visible:\n- NIB Number (13 digits)\n- Business Name\n- Business Type/KBLI\n- Owner Name\n- Address\n- Issue Date\n\nReturn ONLY a JSON object with these fields: { "nib": "", "bizName": "", "bizType": "", "ownerName": "", "address": "", "issueDate": "" }. Use empty string for fields not found.`
+      ? `You are an expert OCR system specialized in Indonesian government business documents.
+Analyze this NIB (Nomor Induk Berusaha) document image carefully.
+
+Extract EXACTLY these fields (use empty string "" if a field is not clearly visible):
+- nib: The 13-digit NIB number (digits only, no spaces/dashes)
+- bizName: Full business/company name as written
+- bizType: Business category or KBLI code
+- ownerName: Full name of the business owner/director
+- address: Complete business address
+- issueDate: Issue date in original format
+
+Return ONLY valid JSON, no markdown, no explanation:
+{ "nib": "", "bizName": "", "bizType": "", "ownerName": "", "address": "", "issueDate": "" }`
       : docType === "SKDU"
-      ? `Analyze this Indonesian SKDU (Surat Keterangan Domisili Usaha) document image. Extract:\n- Document Number\n- Business Name\n- Owner Name\n- Business Address\n- Village/Kelurahan\n- District/Kecamatan\n- Issue Date\n\nReturn ONLY a JSON object: { "docNumber": "", "bizName": "", "ownerName": "", "address": "", "village": "", "district": "", "issueDate": "" }`
-      : `Analyze this Indonesian KTP (ID card) image. Extract:\n- NIK (16 digits)\n- Full Name\n- Place/Date of Birth\n- Address\n- RT/RW\n- Village\n- District\n\nReturn ONLY a JSON object: { "nik": "", "name": "", "birthPlaceDate": "", "address": "", "rtRw": "", "village": "", "district": "" }`;
+      ? `You are an expert OCR system specialized in Indonesian local government documents.
+Analyze this SKDU (Surat Keterangan Domisili Usaha) document image carefully.
+
+Extract EXACTLY these fields (use empty string "" if not clearly visible):
+- docNumber: Official document number (Nomor Surat)
+- bizName: Full business name
+- ownerName: Full name of business owner
+- address: Complete business address
+- village: Kelurahan/Desa name
+- district: Kecamatan name
+- issueDate: Issue date in original format
+
+Return ONLY valid JSON, no markdown, no explanation:
+{ "docNumber": "", "bizName": "", "ownerName": "", "address": "", "village": "", "district": "", "issueDate": "" }`
+      : `You are an expert OCR system specialized in Indonesian national ID cards (KTP).
+Analyze this KTP (Kartu Tanda Penduduk) image carefully.
+
+Extract EXACTLY these fields (use empty string "" if not clearly visible):
+- nik: The 16-digit NIK number (digits only)
+- name: Full name (Nama) as written
+- birthPlaceDate: Combined birth place and date (Tempat/Tgl Lahir)
+- address: Full address (Alamat)
+- rtRw: RT/RW numbers
+- village: Kelurahan/Desa
+- district: Kecamatan
+
+Return ONLY valid JSON, no markdown, no explanation:
+{ "nik": "", "name": "", "birthPlaceDate": "", "address": "", "rtRw": "", "village": "", "district": "" }`;
 
     const response = await openaiClient.chat.completions.create({
       model: aiSource === "azure-openai" ? (process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o") : "gpt-4o",

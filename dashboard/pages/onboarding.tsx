@@ -205,12 +205,28 @@ export default function Onboarding() {
   const [nibError, setNibError] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
+  const [scanProgress, setScanProgress] = useState<"idle"|"uploading"|"analyzing"|"done">("idle");
+  const [activeDocTab, setActiveDocTab] = useState<"NIB"|"SKDU"|"KTP">("NIB");
+  const [previewUrl, setPreviewUrl] = useState<string|null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDocumentScan = async (file: File, docType: string) => {
+    if (!file) return;
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      addToast(lang==="id" ? "Hanya file gambar (JPG/PNG/WEBP) yang didukung" : "Only image files (JPG/PNG/WEBP) are supported", "error");
+      return;
+    }
+    // Preview
+    const objUrl = URL.createObjectURL(file);
+    setPreviewUrl(objUrl);
     setScanning(true);
     setScanResult(null);
+    setScanProgress("uploading");
     try {
+      await new Promise(r => setTimeout(r, 400)); // short delay so user sees progress
+      setScanProgress("analyzing");
       const formData = new FormData();
       formData.append("file", file);
       formData.append("docType", docType);
@@ -220,23 +236,34 @@ export default function Onboarding() {
         body: formData,
       });
       const data = await res.json();
+      setScanProgress("done");
       if (data.success && data.extracted) {
-        setScanResult(data);
+        setScanResult({ ...data, docType });
         // Auto-fill form fields based on extracted data
-        if (docType === "NIB" && data.extracted.nib) {
-          u("nibInput", data.extracted.nib);
-          const h = await hashData(data.extracted.nib);
+        const ex = data.extracted;
+        if (docType === "NIB" && ex.nib) {
+          u("nibInput", ex.nib);
+          const h = await hashData(ex.nib);
           u("nibHash", h);
           u("hasNIB", "yes");
         }
-        if (data.extracted.bizName && !form.bizName) u("bizName", data.extracted.bizName);
-        if (data.extracted.address && !form.address) u("address", data.extracted.address);
+        if (docType === "KTP" && ex.nik) {
+          u("nikInput", ex.nik);
+          const h = await hashData(ex.nik);
+          u("nikHash", h);
+        }
+        if (ex.bizName && !form.bizName) u("bizName", ex.bizName);
+        if (ex.address && !form.address) u("address", ex.address);
+        if (ex.ownerName && !form.bizName) u("bizName", ex.ownerName); // fallback for KTP
         addToast(lang==="id" ? `✅ Dokumen ${docType} berhasil dipindai! Data otomatis terisi.` : `✅ ${docType} document scanned! Data auto-filled.`, "success");
       } else {
-        addToast(lang==="id" ? "Gagal membaca dokumen. Coba foto yang lebih jelas." : "Failed to read document. Try a clearer photo.", "error");
+        setScanResult(null);
+        addToast(lang==="id" ? "❌ Gagal membaca dokumen. Coba foto yang lebih jelas dan terang." : "❌ Failed to read document. Try a clearer, well-lit photo.", "error");
       }
     } catch(e) {
-      addToast(lang==="id" ? "Error: backend offline atau dokumen tidak valid" : "Error: backend offline or invalid document", "error");
+      setScanProgress("idle");
+      setScanResult(null);
+      addToast(lang==="id" ? "❌ Backend offline atau dokumen tidak valid. Pastikan server berjalan." : "❌ Backend offline or invalid document. Ensure server is running.", "error");
     }
     setScanning(false);
   };
@@ -559,60 +586,155 @@ export default function Onboarding() {
                   )}
                 </div>
 
-                {/* Document AI Scanner */}
-                <div className="card" style={{padding:"16px 18px",marginBottom:12,border:"1.5px dashed rgba(2,128,144,.4)",background:"rgba(2,128,144,.03)"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                    <div>
-                      <div style={{fontWeight:600,fontSize:13,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>
-                        🤖 {lang==="id"?"AI Document Scanner":"AI Document Scanner"}
-                        <span style={{background:"rgba(2,128,144,.12)",color:"#028090",fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,letterSpacing:.5}}>{lang==="id"?"AZURE AI":"AZURE AI"}</span>
+                {/* Document AI Scanner — Premium Revamp */}
+                <div style={{marginBottom:14,background:"linear-gradient(135deg,rgba(2,128,144,.06),rgba(2,195,154,.04))",border:"1px solid rgba(2,128,144,.25)",borderRadius:16,overflow:"hidden"}}>
+                  {/* Scanner Header */}
+                  <div style={{padding:"14px 18px",borderBottom:"1px solid rgba(2,128,144,.15)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#028090,#02C39A)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🤖</div>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:13,letterSpacing:-.2}}>AI Document Scanner</div>
+                        <div style={{fontSize:10,color:"#028090",fontWeight:600}}>GPT-4o Vision · {lang==="id"?"Ekstraksi Otomatis":"Auto-Extract"}</div>
                       </div>
-                      <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5}}>{lang==="id"?"Upload foto NIB/SKDU dan AI akan mengekstrak data secara otomatis. Tidak perlu ketik manual!":"Upload NIB/SKDU photo and AI will extract data automatically. No manual typing needed!"}</div>
                     </div>
+                    <div style={{fontSize:10,background:"rgba(2,128,144,.12)",border:"1px solid rgba(2,128,144,.2)",borderRadius:6,padding:"3px 8px",color:"#028090",fontWeight:700,letterSpacing:.5}}>AZURE AI</div>
                   </div>
-                  <input ref={fileInputRef} type="file" accept="image/*" style={{display:"none"}} onChange={(e)=>{
-                    const file = e.target.files?.[0];
-                    if(file) handleDocumentScan(file, "NIB");
-                    e.target.value = "";
-                  }}/>
-                  <div style={{display:"flex",gap:8}}>
-                    <button
-                      onClick={()=>fileInputRef.current?.click()}
-                      disabled={scanning}
-                      style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:scanning?"var(--card)":"linear-gradient(135deg,#028090,#02C39A)",border:scanning?"1px solid var(--border)":"none",borderRadius:9,color:scanning?"var(--text4)":"#fff",padding:"11px 16px",fontSize:12,fontWeight:600,cursor:scanning?"not-allowed":"pointer",fontFamily:"var(--font)",transition:"all .2s"}}
-                    >
-                      {scanning ? (
-                        <><span style={{display:"inline-block",width:14,height:14,border:"2px solid rgba(255,255,255,.2)",borderTopColor:"#028090",borderRadius:"50%",animation:"spin 1s linear infinite"}}/> {lang==="id"?"Memindai dokumen...":"Scanning document..."}</>
-                      ) : (
-                        <>{lang==="id"?"📷 Upload Foto NIB":"📷 Upload NIB Photo"}</>
-                      )}
-                    </button>
-                    <button
-                      onClick={()=>{
-                        const input = document.createElement("input");
-                        input.type = "file"; input.accept = "image/*";
-                        input.onchange = (e:any) => { const f = e.target.files?.[0]; if(f) handleDocumentScan(f, "SKDU"); };
-                        input.click();
-                      }}
-                      disabled={scanning}
-                      style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"var(--card)",border:"1px solid var(--border)",borderRadius:9,color:scanning?"var(--text5)":"var(--text2)",padding:"11px 16px",fontSize:12,fontWeight:500,cursor:scanning?"not-allowed":"pointer",fontFamily:"var(--font)",transition:"all .2s"}}
-                    >
-                      {lang==="id"?"📷 Upload Foto SKDU":"📷 Upload SKDU Photo"}
-                    </button>
+
+                  {/* Doc Type Tabs */}
+                  <div style={{display:"flex",gap:0,borderBottom:"1px solid rgba(2,128,144,.15)"}}>
+                    {(["NIB","SKDU","KTP"] as const).map(tab => (
+                      <button key={tab} onClick={()=>{ setActiveDocTab(tab); setScanResult(null); setPreviewUrl(null); setScanProgress("idle"); }}
+                        style={{flex:1,padding:"10px 8px",border:"none",borderBottom:`2px solid ${activeDocTab===tab?"#02C39A":"transparent"}`,background:activeDocTab===tab?"rgba(2,195,154,.08)":"transparent",color:activeDocTab===tab?"#02C39A":"var(--text3)",fontSize:12,fontWeight:activeDocTab===tab?700:500,cursor:"pointer",fontFamily:"var(--font)",transition:"all .2s"}}>
+                        {tab === "NIB" ? "📄 NIB" : tab === "SKDU" ? "🏛 SKDU" : "🪪 KTP"}
+                        <div style={{fontSize:9,opacity:.7,marginTop:1}}>
+                          {tab==="NIB"?(lang==="id"?"Induk Berusaha":"Business ID"):tab==="SKDU"?(lang==="id"?"Ket. Domisili":"Domicile Cert"):(lang==="id"?"Kartu ID":"ID Card")}
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  {scanResult && (
-                    <div style={{marginTop:10,background:"rgba(2,195,154,.07)",border:"1px solid rgba(2,195,154,.15)",borderRadius:8,padding:"10px 14px"}}>
-                      <div style={{fontSize:10,color:"#02C39A",fontWeight:600,marginBottom:6}}>✅ {lang==="id"?"Data berhasil diekstrak":"Data extracted successfully"} ({scanResult.docType})</div>
-                      <div style={{display:"grid",gap:3}}>
-                        {Object.entries(scanResult.extracted).filter(([_,v])=>v).map(([k,v],i)=>(
-                          <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:10}}>
-                            <span style={{color:"var(--text4)",textTransform:"capitalize"}}>{k.replace(/([A-Z])/g, ' $1')}</span>
-                            <span style={{color:"var(--text2)",fontWeight:500}}>{v as string}</span>
+
+                  {/* Drop Zone */}
+                  <div style={{padding:"14px 18px"}}>
+                    <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{display:"none"}} onChange={(e)=>{
+                      const file = e.target.files?.[0];
+                      if(file) handleDocumentScan(file, activeDocTab);
+                      e.target.value = "";
+                    }}/>
+
+                    {/* Drag & Drop Area */}
+                    {!previewUrl && !scanning && (
+                      <div
+                        onClick={()=>fileInputRef.current?.click()}
+                        onDragOver={e=>{ e.preventDefault(); setIsDragOver(true); }}
+                        onDragLeave={()=>setIsDragOver(false)}
+                        onDrop={e=>{ e.preventDefault(); setIsDragOver(false); const f=e.dataTransfer.files[0]; if(f) handleDocumentScan(f, activeDocTab); }}
+                        style={{border:`2px dashed ${isDragOver?"#02C39A":"rgba(2,128,144,.4)"}`,borderRadius:12,padding:"28px 20px",textAlign:"center",cursor:"pointer",background:isDragOver?"rgba(2,195,154,.08)":"transparent",transition:"all .25s"}}>
+                        <div style={{fontSize:32,marginBottom:8}}>
+                          {activeDocTab==="NIB"?"📄":activeDocTab==="SKDU"?"🏛":"🪪"}
+                        </div>
+                        <div style={{fontSize:13,fontWeight:600,color:"var(--text1)",marginBottom:4}}>
+                          {lang==="id"?`Drag & Drop foto ${activeDocTab} di sini`:`Drag & Drop ${activeDocTab} photo here`}
+                        </div>
+                        <div style={{fontSize:11,color:"var(--text4)",marginBottom:12}}>
+                          {lang==="id"?"atau klik untuk browse file":"or click to browse file"} · JPG/PNG/WEBP · max 10MB
+                        </div>
+                        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"linear-gradient(135deg,#028090,#02C39A)",borderRadius:8,padding:"8px 18px",color:"#fff",fontSize:12,fontWeight:600}}>
+                          📷 {lang==="id"?"Pilih Gambar":"Choose Image"}
+                        </div>
+                        <div style={{marginTop:10,fontSize:10,color:"var(--text5)"}}>
+                          {activeDocTab==="NIB"&&(lang==="id"?"Pastikan 13 digit NIB terlihat jelas":"Ensure 13-digit NIB is clearly visible")}
+                          {activeDocTab==="SKDU"&&(lang==="id"?"Pastikan kop surat dan nomor surat terlihat":"Ensure letterhead and document number visible")}
+                          {activeDocTab==="KTP"&&(lang==="id"?"Pastikan 16 digit NIK terlihat jelas":"Ensure 16-digit NIK is clearly visible")}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scanning Progress */}
+                    {scanning && (
+                      <div style={{textAlign:"center",padding:"20px 0"}}>
+                        <div style={{display:"flex",justifyContent:"center",gap:20,marginBottom:16}}>
+                          {[
+                            {key:"uploading",icon:"⬆",label:lang==="id"?"Upload":"Upload"},
+                            {key:"analyzing",icon:"🔍",label:lang==="id"?"Analisis":"Analyze"},
+                            {key:"done",icon:"✅",label:lang==="id"?"Ekstrak":"Extract"},
+                          ].map((step,i)=>{
+                            const isActive = scanProgress===step.key;
+                            const isDone = (scanProgress==="analyzing"&&i===0)||(scanProgress==="done"&&i<2);
+                            return (
+                              <div key={step.key} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                                <div style={{width:36,height:36,borderRadius:"50%",background:isDone?"#02C39A":isActive?"rgba(2,128,144,.2)":"var(--bg2)",border:`2px solid ${isDone||isActive?"#02C39A":"var(--border)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,transition:"all .3s"}}>
+                                  {isDone?"✓":isActive?<span style={{display:"inline-block",width:14,height:14,border:"2px solid rgba(2,195,154,.3)",borderTopColor:"#02C39A",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>:step.icon}
+                                </div>
+                                <div style={{fontSize:10,color:isDone||isActive?"#02C39A":"var(--text5)",fontWeight:isDone||isActive?600:400}}>{step.label}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {previewUrl&&<img src={previewUrl} alt="preview" style={{maxHeight:120,maxWidth:"100%",borderRadius:8,objectFit:"cover",border:"1px solid var(--border)",opacity:.6}}/>}
+                        <div style={{marginTop:10,fontSize:12,color:"var(--text3)"}}>
+                          {scanProgress==="uploading"?(lang==="id"?"Mengupload gambar...":"Uploading image...")
+                          :scanProgress==="analyzing"?(lang==="id"?"AI sedang menganalisis dokumen...":"AI is analyzing document...")
+                          :(lang==="id"?"Mengekstrak data...":"Extracting data...")}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview after scan */}
+                    {previewUrl && !scanning && (
+                      <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                        <div style={{flexShrink:0}}>
+                          <img src={previewUrl} alt="Scanned doc" style={{width:90,height:90,objectFit:"cover",borderRadius:8,border:"1px solid var(--border)"}}/>
+                          <button onClick={()=>{ setPreviewUrl(null); setScanResult(null); setScanProgress("idle"); }}
+                            style={{display:"block",width:"100%",marginTop:4,background:"transparent",border:"1px solid var(--border)",borderRadius:6,color:"var(--text4)",fontSize:10,padding:"3px 0",cursor:"pointer",fontFamily:"var(--font)"}}>
+                            {lang==="id"?"Scan ulang":"Re-scan"}
+                          </button>
+                        </div>
+
+                        {/* Extracted Data */}
+                        {scanResult?.extracted && (
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8}}>
+                              <span style={{fontSize:12,fontWeight:700,color:"#02C39A"}}>✅ {lang==="id"?"Data Diekstrak":"Extracted Data"}</span>
+                              <span style={{fontSize:9,background:"rgba(2,195,154,.1)",border:"1px solid rgba(2,195,154,.2)",borderRadius:4,padding:"1px 5px",color:"#02C39A",fontWeight:700}}>{scanResult.docType}</span>
+                            </div>
+                            <div style={{display:"grid",gap:5}}>
+                              {(()=>{
+                                const FIELD_LABELS: Record<string,{id:string;en:string;icon:string}> = {
+                                  nib:{id:"Nomor NIB",en:"NIB Number",icon:"🔢"},
+                                  nik:{id:"Nomor NIK",en:"NIK Number",icon:"🆔"},
+                                  bizName:{id:"Nama Usaha",en:"Business Name",icon:"🏪"},
+                                  bizType:{id:"Jenis Usaha",en:"Business Type",icon:"📋"},
+                                  ownerName:{id:"Nama Pemilik",en:"Owner Name",icon:"👤"},
+                                  name:{id:"Nama Lengkap",en:"Full Name",icon:"👤"},
+                                  address:{id:"Alamat",en:"Address",icon:"📍"},
+                                  village:{id:"Kelurahan",en:"Village",icon:"🏘"},
+                                  district:{id:"Kecamatan",en:"District",icon:"🗺"},
+                                  issueDate:{id:"Tgl Terbit",en:"Issue Date",icon:"📅"},
+                                  docNumber:{id:"No. Surat",en:"Doc Number",icon:"📝"},
+                                  birthPlaceDate:{id:"Tempat/Tgl Lahir",en:"Birth Place/Date",icon:"🎂"},
+                                  rtRw:{id:"RT/RW",en:"RT/RW",icon:"🏠"},
+                                };
+                                return Object.entries(scanResult.extracted)
+                                  .filter(([_,v])=>v && String(v).trim())
+                                  .map(([k,v],i)=>{
+                                    const meta = FIELD_LABELS[k];
+                                    return (
+                                      <div key={i} style={{display:"flex",alignItems:"flex-start",gap:6,background:"rgba(2,195,154,.04)",border:"1px solid rgba(2,195,154,.08)",borderRadius:7,padding:"6px 8px"}}>
+                                        <span style={{fontSize:12,flexShrink:0}}>{meta?.icon||"·"}</span>
+                                        <div style={{minWidth:0,flex:1}}>
+                                          <div style={{fontSize:9,color:"var(--text4)",fontWeight:600,letterSpacing:.4,textTransform:"uppercase",marginBottom:1}}>{lang==="id"?meta?.id:meta?.en||k}</div>
+                                          <div style={{fontSize:11,color:"var(--text1)",fontWeight:600,wordBreak:"break-word"}}>{v as string}</div>
+                                        </div>
+                                      </div>
+                                    );
+                                  });
+                              })()}
+                            </div>
                           </div>
-                        ))}
+                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Input NIB */}
